@@ -40,4 +40,6 @@ if [[ -d /etc/udev/rules.d ]]; then
   sudo udevadm control --reload-rules 2>/dev/null || true
 fi
 
+pkill -f "laptop-tune gui" 2>/dev/null || true
+
 echo "Done! Run: laptop-tune status (or launch 'Laptop Tune' from your app menu)"

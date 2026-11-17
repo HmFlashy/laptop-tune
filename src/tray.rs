@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -32,12 +32,13 @@ impl ksni::Tray for LaptopTuneTray {
     }
 
     fn title(&self) -> String {
+        let t = tr();
         let state = read_profile_state_in(Path::new("/sys"));
         let active = guess_active_profile(&state);
         if active.is_empty() {
             "laptop-tune".into()
         } else {
-            format!("laptop-tune ({active})")
+            format!("laptop-tune ({})", t.mode_label(active))
         }
     }
 
@@ -151,13 +152,29 @@ pub fn notify_tray_refresh() {
     }
 }
 
+fn stop_existing_tray() {
+    if let Some(sock) = tray_socket_path() {
+        if let Ok(mut stream) = UnixStream::connect(&sock) {
+            let _ = stream.write_all(b"quit\n");
+            let _ = stream.flush();
+        }
+    }
+}
+
 fn spawn_socket_listener(tx: Sender<TrayEvent>) -> Option<PathBuf> {
     let sock_path = tray_socket_path()?;
     let _ = fs::remove_file(&sock_path);
     let listener = UnixListener::bind(&sock_path).ok()?;
     thread::spawn(move || {
-        for stream in listener.incoming() {
-            if stream.is_ok() && tx.send(TrayEvent::Refresh).is_err() {
+        for mut stream in listener.incoming().flatten() {
+            let mut buf = [0u8; 16];
+            let n = stream.read(&mut buf).unwrap_or(0);
+            let event = if buf[..n].starts_with(b"quit") {
+                TrayEvent::Quit
+            } else {
+                TrayEvent::Refresh
+            };
+            if tx.send(event).is_err() {
                 break;
             }
         }
@@ -196,6 +213,7 @@ fn spawn_power_watcher(tx: Sender<TrayEvent>) {
 
 /// Runs a lightweight event-driven system-tray host (zero polling).
 pub fn run_tray_host() {
+    stop_existing_tray();
     let Some(tray) = spawn_tray() else {
         crate::gui::run_gui();
         return;

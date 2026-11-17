@@ -1200,7 +1200,7 @@ dependencies = [
 
 [[package]]
 name = "laptop-tune"
-version = "2.7.1"
+version = "2.7.2"
 dependencies = [
  "eframe",
  "ksni",
