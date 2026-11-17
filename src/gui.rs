@@ -23,6 +23,8 @@ struct LaptopTuneApp {
     status_msg: Option<(String, bool)>,
     config: AppConfig,
     autostart_enabled: bool,
+    thresh_start: u8,
+    thresh_stop: u8,
 }
 
 impl LaptopTuneApp {
@@ -31,12 +33,27 @@ impl LaptopTuneApp {
             .map(|p| load_config_from(&p))
             .unwrap_or_default();
         let autostart_enabled = default_autostart_path().is_some_and(|p| p.exists());
+        let snapshot = collect_snapshot();
+        let thresh_start = snapshot
+            .batteries
+            .first()
+            .and_then(|b| b.start_threshold.as_deref())
+            .and_then(|s| s.parse::<u8>().ok())
+            .unwrap_or(50);
+        let thresh_stop = snapshot
+            .batteries
+            .first()
+            .and_then(|b| b.stop_threshold.as_deref())
+            .and_then(|s| s.parse::<u8>().ok())
+            .unwrap_or(80);
         Self {
-            snapshot: collect_snapshot(),
+            snapshot,
             last_refresh: Instant::now(),
             status_msg: None,
             config,
             autostart_enabled,
+            thresh_start,
+            thresh_stop,
         }
     }
 
@@ -94,6 +111,20 @@ impl LaptopTuneApp {
 
     fn reset_defaults(&mut self) {
         self.run_privileged(&["reset"], tr().defaults_restored.into());
+    }
+
+    fn apply_thresholds(&mut self, start: u8, stop: u8) {
+        let start = start.min(stop.saturating_sub(5).max(1));
+        let stop = stop.clamp(start + 1, 100);
+        self.thresh_start = start;
+        self.thresh_stop = stop;
+        let s_str = start.to_string();
+        let e_str = stop.to_string();
+        let t = tr();
+        self.run_privileged(
+            &["thresholds", &s_str, &e_str],
+            format!("{}: {start}% / {stop}%", t.charge_thresholds),
+        );
     }
 
     fn active_profile_guess(&self) -> &'static str {
@@ -312,6 +343,7 @@ impl eframe::App for LaptopTuneApp {
                     ui.add_space(10.0);
 
                     // 2. Battery Card
+                    let mut pending_thresholds: Option<(u8, u8)> = None;
                     card_frame(ui).show(ui, |ui| {
                         section_title(ui, t.battery);
                         ui.add_space(4.0);
@@ -357,19 +389,65 @@ impl eframe::App for LaptopTuneApp {
                                 if let (Some(s), Some(e)) =
                                     (&bat.start_threshold, &bat.stop_threshold)
                                 {
-                                    ui.add_space(4.0);
-                                    ui.label(
-                                        egui::RichText::new(format!(
-                                            "{} : {} {s}% / {} {e}%",
-                                            t.charge_thresholds, t.start_label, t.stop_label
-                                        ))
-                                        .size(12.0)
-                                        .color(muted),
-                                    );
+                                    let cur_s = s.parse::<u8>().unwrap_or(self.thresh_start);
+                                    let cur_e = e.parse::<u8>().unwrap_or(self.thresh_stop);
+                                    let mut sel_s = cur_s;
+                                    let mut sel_e = cur_e;
+                                    ui.add_space(6.0);
+                                    ui.horizontal(|ui| {
+                                        ui.label(
+                                            egui::RichText::new(format!(
+                                                "{} :",
+                                                t.charge_thresholds
+                                            ))
+                                            .color(muted),
+                                        );
+                                        ui.label(egui::RichText::new(t.start_label).color(muted));
+                                        egui::ComboBox::from_id_salt("bat_start_thresh")
+                                            .selected_text(format!("{sel_s}%"))
+                                            .width(68.0)
+                                            .show_ui(ui, |ui| {
+                                                for val in [40u8, 50, 60, 70, 80, 90] {
+                                                    ui.selectable_value(
+                                                        &mut sel_s,
+                                                        val,
+                                                        format!("{val}%"),
+                                                    );
+                                                }
+                                            });
+                                        ui.add_space(4.0);
+                                        ui.label(egui::RichText::new(t.stop_label).color(muted));
+                                        egui::ComboBox::from_id_salt("bat_stop_thresh")
+                                            .selected_text(format!("{sel_e}%"))
+                                            .width(68.0)
+                                            .show_ui(ui, |ui| {
+                                                for val in [60u8, 70, 80, 90, 100] {
+                                                    ui.selectable_value(
+                                                        &mut sel_e,
+                                                        val,
+                                                        format!("{val}%"),
+                                                    );
+                                                }
+                                            });
+                                    });
+                                    if sel_s != cur_s {
+                                        if sel_s >= sel_e {
+                                            sel_e = (sel_s + 10).min(100);
+                                        }
+                                        pending_thresholds = Some((sel_s, sel_e));
+                                    } else if sel_e != cur_e {
+                                        if sel_e <= sel_s {
+                                            sel_s = sel_e.saturating_sub(10).max(40);
+                                        }
+                                        pending_thresholds = Some((sel_s, sel_e));
+                                    }
                                 }
                             }
                         }
                     });
+                    if let Some((ps, pe)) = pending_thresholds {
+                        self.apply_thresholds(ps, pe);
+                    }
 
                     ui.add_space(10.0);
 
