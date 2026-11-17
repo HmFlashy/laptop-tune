@@ -149,7 +149,9 @@ impl eframe::App for LaptopTuneApp {
             self.startup_applied = true;
             if self.config.apply_on_startup {
                 if let Some(startup) = self.config.startup_profile.clone() {
-                    self.apply_profile(&startup);
+                    if guess_active_profile(&self.snapshot.profile) != startup {
+                        self.apply_profile(&startup);
+                    }
                 }
             }
         }
