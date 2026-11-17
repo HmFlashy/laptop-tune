@@ -11,6 +11,18 @@ pub struct ProfileState {
     pub turbo: String,
 }
 
+pub fn guess_active_profile(p: &ProfileState) -> &'static str {
+    if p.cpu_epp == "power" || p.platform == "quiet" || p.platform == "cool" {
+        "eco"
+    } else if p.platform == "balanced" || p.cpu_epp == "balance_performance" {
+        "balanced"
+    } else if p.platform == "performance" {
+        "performance"
+    } else {
+        ""
+    }
+}
+
 pub struct Snapshot {
     pub batteries: Vec<BatteryInfo>,
     pub gpus: Vec<GpuDevice>,

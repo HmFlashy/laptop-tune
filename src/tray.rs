@@ -1,8 +1,11 @@
 use std::env;
+use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::mpsc::{self, Receiver, Sender};
 
 use ksni::blocking::{Handle, TrayMethods};
+
+use crate::snapshot::{guess_active_profile, read_profile_state_in};
 
 pub enum TrayEvent {
     ToggleWindow,
@@ -20,7 +23,13 @@ impl ksni::Tray for LaptopTuneTray {
     }
 
     fn title(&self) -> String {
-        "laptop-tune".into()
+        let state = read_profile_state_in(Path::new("/sys"));
+        let active = guess_active_profile(&state);
+        if active.is_empty() {
+            "laptop-tune".into()
+        } else {
+            format!("laptop-tune ({active})")
+        }
     }
 
     fn icon_name(&self) -> String {
@@ -33,6 +42,9 @@ impl ksni::Tray for LaptopTuneTray {
 
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         use ksni::menu::*;
+        let state = read_profile_state_in(Path::new("/sys"));
+        let active = guess_active_profile(&state);
+
         vec![
             StandardItem {
                 label: "Show / Hide".into(),
@@ -43,32 +55,36 @@ impl ksni::Tray for LaptopTuneTray {
             }
             .into(),
             MenuItem::Separator,
-            StandardItem {
+            CheckmarkItem {
                 label: "Profile: Eco".into(),
+                checked: active == "eco",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("eco".into()));
                 }),
                 ..Default::default()
             }
             .into(),
-            StandardItem {
+            CheckmarkItem {
                 label: "Profile: Balanced".into(),
+                checked: active == "balanced",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("balanced".into()));
                 }),
                 ..Default::default()
             }
             .into(),
-            StandardItem {
+            CheckmarkItem {
                 label: "Profile: Performance".into(),
+                checked: active == "performance",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("performance".into()));
                 }),
                 ..Default::default()
             }
             .into(),
-            StandardItem {
+            CheckmarkItem {
                 label: "Profile: Gaming".into(),
+                checked: active == "gaming",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("gaming".into()));
                 }),
@@ -146,6 +162,7 @@ pub fn run_tray_host() {
                     .arg("profile")
                     .arg(&name)
                     .status();
+                tray._handle.update(|_| {});
             }
             TrayEvent::Quit => {
                 if let Some(mut c) = child.take() {

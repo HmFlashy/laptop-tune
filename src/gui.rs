@@ -9,7 +9,7 @@ use crate::config::{
     set_autostart_at, AppConfig,
 };
 use crate::gpu::vendor_name;
-use crate::snapshot::{collect_snapshot, Snapshot};
+use crate::snapshot::{collect_snapshot, guess_active_profile, Snapshot};
 
 const ACCENT_CYAN: egui::Color32 = egui::Color32::from_rgb(56, 189, 248);
 const ACCENT_GREEN: egui::Color32 = egui::Color32::from_rgb(34, 197, 94);
@@ -112,16 +112,7 @@ impl LaptopTuneApp {
     }
 
     fn active_profile_guess(&self) -> &'static str {
-        let p = &self.snapshot.profile;
-        if p.cpu_epp == "power" || p.platform == "quiet" || p.platform == "cool" {
-            "eco"
-        } else if p.platform == "balanced" || p.cpu_epp == "balance_performance" {
-            "balanced"
-        } else if p.platform == "performance" {
-            "performance"
-        } else {
-            ""
-        }
+        guess_active_profile(&self.snapshot.profile)
     }
 }
 
