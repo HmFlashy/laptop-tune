@@ -179,10 +179,11 @@ fn spawn_power_watcher(tx: Sender<TrayEvent>) {
         if let Some(stdout) = child.stdout.take() {
             let reader = BufReader::new(stdout);
             for line in reader.lines().map_while(Result::ok) {
-                if line.contains("UDEV") && line.contains("power_supply") {
-                    if tx.send(TrayEvent::PowerChanged).is_err() {
-                        break;
-                    }
+                if line.contains("UDEV")
+                    && line.contains("power_supply")
+                    && tx.send(TrayEvent::PowerChanged).is_err()
+                {
+                    break;
                 }
             }
         }
