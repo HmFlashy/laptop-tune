@@ -12,13 +12,14 @@ use crate::gpu::vendor_name;
 use crate::snapshot::{collect_snapshot, guess_active_profile, Snapshot};
 use crate::tray::notify_tray_refresh;
 
-const ACCENT_CYAN: egui::Color32 = egui::Color32::from_rgb(56, 189, 248);
-const ACCENT_GREEN: egui::Color32 = egui::Color32::from_rgb(34, 197, 94);
-const ACCENT_AMBER: egui::Color32 = egui::Color32::from_rgb(250, 204, 21);
-const ACCENT_RED: egui::Color32 = egui::Color32::from_rgb(248, 113, 113);
-const CARD_BG: egui::Color32 = egui::Color32::from_rgb(22, 30, 46);
-const CARD_BORDER: egui::Color32 = egui::Color32::from_rgb(51, 65, 85);
-const MUTED_TEXT: egui::Color32 = egui::Color32::from_rgb(148, 163, 184);
+const ACCENT_BLUE: egui::Color32 = egui::Color32::from_rgb(61, 174, 233);
+const ACCENT_GREEN: egui::Color32 = egui::Color32::from_rgb(46, 204, 113);
+const ACCENT_AMBER: egui::Color32 = egui::Color32::from_rgb(243, 156, 18);
+const ACCENT_RED: egui::Color32 = egui::Color32::from_rgb(231, 76, 60);
+const PANEL_BG: egui::Color32 = egui::Color32::from_rgb(27, 30, 32);
+const CARD_BG: egui::Color32 = egui::Color32::from_rgb(35, 38, 41);
+const CARD_BORDER: egui::Color32 = egui::Color32::from_rgb(59, 64, 69);
+const MUTED_TEXT: egui::Color32 = egui::Color32::from_rgb(161, 169, 177);
 
 struct LaptopTuneApp {
     snapshot: Snapshot,
@@ -47,12 +48,12 @@ impl LaptopTuneApp {
 
     fn apply_theme(ctx: &egui::Context) {
         let mut visuals = egui::Visuals::dark();
-        visuals.panel_fill = egui::Color32::from_rgb(15, 23, 42);
+        visuals.panel_fill = PANEL_BG;
         visuals.widgets.noninteractive.bg_fill = CARD_BG;
-        visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(30, 41, 59);
-        visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(51, 65, 85);
-        visuals.widgets.active.bg_fill = egui::Color32::from_rgb(71, 85, 105);
-        visuals.selection.bg_fill = ACCENT_CYAN.linear_multiply(0.35);
+        visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(49, 54, 59);
+        visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(61, 67, 73);
+        visuals.widgets.active.bg_fill = egui::Color32::from_rgb(74, 82, 90);
+        visuals.selection.bg_fill = ACCENT_BLUE.linear_multiply(0.35);
         ctx.set_visuals_of(egui::Theme::Dark, visuals);
 
         let mut style = (*ctx.style_of(egui::Theme::Dark)).clone();
@@ -121,7 +122,7 @@ fn section_title(ui: &mut egui::Ui, title: &str) {
         egui::RichText::new(title)
             .size(14.0)
             .strong()
-            .color(ACCENT_CYAN),
+            .color(ACCENT_BLUE),
     );
 }
 
@@ -151,11 +152,7 @@ impl eframe::App for LaptopTuneApp {
         ctx.request_repaint_after(Duration::from_millis(1500));
 
         egui::CentralPanel::default()
-            .frame(
-                egui::Frame::new()
-                    .fill(egui::Color32::from_rgb(15, 23, 42))
-                    .inner_margin(14.0),
-            )
+            .frame(egui::Frame::new().fill(PANEL_BG).inner_margin(14.0))
             .show(ui, |ui| {
                 // Header
                 ui.horizontal(|ui| {
@@ -165,7 +162,7 @@ impl eframe::App for LaptopTuneApp {
                             .strong()
                             .color(egui::Color32::WHITE),
                     );
-                    pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), ACCENT_CYAN);
+                    pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), ACCENT_BLUE);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("Close").clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
@@ -240,9 +237,9 @@ impl eframe::App for LaptopTuneApp {
                                     egui::Button::new(
                                         egui::RichText::new(label)
                                             .strong()
-                                            .color(egui::Color32::from_rgb(15, 23, 42)),
+                                            .color(egui::Color32::from_rgb(20, 23, 25)),
                                     )
-                                    .fill(ACCENT_CYAN)
+                                    .fill(ACCENT_BLUE)
                                     .corner_radius(6.0)
                                 } else {
                                     egui::Button::new(label).corner_radius(6.0)
@@ -354,7 +351,7 @@ impl eframe::App for LaptopTuneApp {
                                         ui.with_layout(
                                             egui::Layout::right_to_left(egui::Align::Center),
                                             |ui| {
-                                                pill(ui, &format!("{w:.2} W"), ACCENT_CYAN);
+                                                pill(ui, &format!("{w:.2} W"), ACCENT_BLUE);
                                             },
                                         );
                                     }

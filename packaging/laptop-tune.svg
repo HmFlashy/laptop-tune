@@ -1,28 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e293b"/>
-      <stop offset="100%" stop-color="#0f172a"/>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#31363b"/>
+      <stop offset="100%" stop-color="#232629"/>
     </linearGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#22c55e"/>
+      <stop offset="0%" stop-color="#3daee9"/>
+      <stop offset="100%" stop-color="#2ecc71"/>
     </linearGradient>
   </defs>
 
-  <!-- Rounded squircle background -->
-  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)" stroke="#334155" stroke-width="3"/>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)" stroke="#474d54" stroke-width="3"/>
 
-  <!-- Circular power ring (exact circle, open at bottom) -->
-  <circle cx="64" cy="60" r="34" fill="none" stroke="#1e293b" stroke-width="10"/>
-  <circle cx="64" cy="60" r="34" fill="none" stroke="#334155" stroke-width="7" stroke-linecap="round"
+  <circle cx="64" cy="60" r="34" fill="none" stroke="#1b1e20" stroke-width="10"/>
+  <circle cx="64" cy="60" r="34" fill="none" stroke="#474d54" stroke-width="7" stroke-linecap="round"
           stroke-dasharray="158 214" transform="rotate(138 64 60)"/>
   <circle cx="64" cy="60" r="34" fill="none" stroke="url(#accent)" stroke-width="7" stroke-linecap="round"
           stroke-dasharray="115 214" transform="rotate(138 64 60)"/>
 
-  <!-- Clean centered lightning bolt -->
-  <polygon points="67,38 51,62 62,62 58,82 77,57 65,57" fill="url(#accent)"/>
+  <polygon points="67,38 51,62 62,62 58,82 77,57 65,57" fill="#3daee9"/>
 
-  <!-- Minimalist laptop base bar -->
-  <rect x="38" y="99" width="52" height="6" rx="3" fill="#64748b"/>
+  <rect x="38" y="99" width="52" height="6" rx="3" fill="#7f8c8d"/>
 </svg>
