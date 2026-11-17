@@ -1,6 +1,6 @@
 # Maintainer: Hugo Maitre <hugo.maitre69@gmail.com>
 pkgname=laptop-tune
-pkgver=1.5.2
+pkgver=1.5.3
 pkgrel=1
 pkgdesc="Unified Linux laptop auditor and configurator for hybrid GPU PM, CPU profiles, thermals, and battery thresholds"
 arch=('x86_64' 'aarch64')
