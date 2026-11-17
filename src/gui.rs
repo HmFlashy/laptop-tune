@@ -44,6 +44,7 @@ impl LaptopTuneApp {
             let mut style = (*ctx.style_of(theme)).clone();
             style.spacing.item_spacing = egui::vec2(8.0, 8.0);
             style.spacing.button_padding = egui::vec2(12.0, 6.0);
+            style.spacing.interact_size.y = 26.0;
             ctx.set_style_of(theme, style);
         }
     }
