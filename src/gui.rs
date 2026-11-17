@@ -553,7 +553,7 @@ impl eframe::App for LaptopTuneApp {
 pub fn run_gui() {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([520.0, 620.0])
+            .with_inner_size([520.0, 665.0])
             .with_min_inner_size([400.0, 460.0]),
         ..Default::default()
     };
