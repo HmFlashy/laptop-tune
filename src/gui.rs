@@ -85,7 +85,11 @@ impl LaptopTuneApp {
     }
 
     fn apply_profile(&mut self, name: &str) {
-        self.run_privileged(&["profile", name], format!("Profile '{name}' applied."));
+        let t = tr();
+        self.run_privileged(
+            &["profile", name],
+            format!("{} {}", t.profile_applied_prefix, t.mode_label(name)),
+        );
     }
 
     fn reset_defaults(&mut self) {
@@ -192,7 +196,7 @@ impl eframe::App for LaptopTuneApp {
                         ui.horizontal(|ui| {
                             pill(
                                 ui,
-                                &format!("Platform: {}", self.snapshot.profile.platform),
+                                &format!("{}: {}", t.platform, self.snapshot.profile.platform),
                                 muted,
                             );
                             pill(
@@ -200,28 +204,20 @@ impl eframe::App for LaptopTuneApp {
                                 &format!("EPP: {}", self.snapshot.profile.cpu_epp),
                                 muted,
                             );
-                            let turbo_col = if self.snapshot.profile.turbo == "on" {
-                                ACCENT_GREEN
+                            let (turbo_txt, turbo_col) = if self.snapshot.profile.turbo == "on" {
+                                (t.turbo_on, ACCENT_GREEN)
                             } else {
-                                muted
+                                (t.turbo_off, muted)
                             };
-                            pill(
-                                ui,
-                                &format!("Turbo: {}", self.snapshot.profile.turbo),
-                                turbo_col,
-                            );
+                            pill(ui, turbo_txt, turbo_col);
                         });
                         ui.add_space(8.0);
 
                         let active = self.active_profile_guess();
                         let mut clicked: Option<&str> = None;
                         ui.horizontal(|ui| {
-                            for (id, label) in [
-                                ("eco", "Eco"),
-                                ("balanced", "Balanced"),
-                                ("performance", "Performance"),
-                                ("max", "Max"),
-                            ] {
+                            for id in ["eco", "balanced", "performance", "max"] {
+                                let label = t.mode_label(id);
                                 let is_active = active == id;
                                 let btn = if is_active {
                                     egui::Button::new(
@@ -270,11 +266,15 @@ impl eframe::App for LaptopTuneApp {
                                 ui.label(egui::RichText::new(t.on_battery).color(muted));
                                 let mut bat = self.config.bat_profile.clone();
                                 egui::ComboBox::from_id_salt("bat_profile_combo")
-                                    .selected_text(&bat)
-                                    .width(105.0)
+                                    .selected_text(t.mode_label(&bat))
+                                    .width(110.0)
                                     .show_ui(ui, |ui| {
                                         for prof in ["eco", "balanced", "performance", "max"] {
-                                            ui.selectable_value(&mut bat, prof.into(), prof);
+                                            ui.selectable_value(
+                                                &mut bat,
+                                                prof.into(),
+                                                t.mode_label(prof),
+                                            );
                                         }
                                     });
                                 if bat != self.config.bat_profile {
@@ -285,11 +285,15 @@ impl eframe::App for LaptopTuneApp {
                                 ui.label(egui::RichText::new(t.on_ac).color(muted));
                                 let mut ac = self.config.ac_profile.clone();
                                 egui::ComboBox::from_id_salt("ac_profile_combo")
-                                    .selected_text(&ac)
-                                    .width(105.0)
+                                    .selected_text(t.mode_label(&ac))
+                                    .width(110.0)
                                     .show_ui(ui, |ui| {
                                         for prof in ["eco", "balanced", "performance", "max"] {
-                                            ui.selectable_value(&mut ac, prof.into(), prof);
+                                            ui.selectable_value(
+                                                &mut ac,
+                                                prof.into(),
+                                                t.mode_label(prof),
+                                            );
                                         }
                                     });
                                 if ac != self.config.ac_profile {
@@ -328,7 +332,9 @@ impl eframe::App for LaptopTuneApp {
                                     ui.label(
                                         egui::RichText::new(format!(
                                             "{} — {} ({}%)",
-                                            bat.name, bat.status, bat.capacity
+                                            bat.name,
+                                            t.battery_status(&bat.status),
+                                            bat.capacity
                                         ))
                                         .strong(),
                                     );
@@ -354,8 +360,8 @@ impl eframe::App for LaptopTuneApp {
                                     ui.add_space(4.0);
                                     ui.label(
                                         egui::RichText::new(format!(
-                                            "{}: start {s}% / stop {e}%",
-                                            t.charge_thresholds
+                                            "{} : {} {s}% / {} {e}%",
+                                            t.charge_thresholds, t.start_label, t.stop_label
                                         ))
                                         .size(12.0)
                                         .color(muted),
@@ -374,16 +380,20 @@ impl eframe::App for LaptopTuneApp {
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    pill(ui, &format!("sleep: {}", self.snapshot.mem_sleep), muted);
+                                    pill(
+                                        ui,
+                                        &format!("{}: {}", t.sleep_label, self.snapshot.mem_sleep),
+                                        muted,
+                                    );
                                 },
                             );
                         });
                         ui.add_space(4.0);
                         for gpu in &self.snapshot.gpus {
                             let (status_text, color) = if gpu.runtime_status == "suspended" {
-                                ("D3 SUSPENDED", ACCENT_GREEN)
+                                (t.gpu_suspended, ACCENT_GREEN)
                             } else {
-                                ("ACTIVE", ACCENT_AMBER)
+                                (t.gpu_active, ACCENT_AMBER)
                             };
                             ui.horizontal(|ui| {
                                 ui.label(
@@ -413,6 +423,7 @@ impl eframe::App for LaptopTuneApp {
 
                     // 4. Thermals Card
                     card_frame(ui).show(ui, |ui| {
+                        ui.set_min_width(ui.available_width());
                         section_title(ui, t.thermals);
                         ui.add_space(4.0);
                         egui::Grid::new("thermals_grid")

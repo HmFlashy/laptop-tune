@@ -66,7 +66,7 @@ impl ksni::Tray for LaptopTuneTray {
             .into(),
             MenuItem::Separator,
             CheckmarkItem {
-                label: "Eco".into(),
+                label: t.mode_eco.into(),
                 checked: active == "eco",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("eco".into()));
@@ -75,7 +75,7 @@ impl ksni::Tray for LaptopTuneTray {
             }
             .into(),
             CheckmarkItem {
-                label: "Balanced".into(),
+                label: t.mode_balanced.into(),
                 checked: active == "balanced",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("balanced".into()));
@@ -84,7 +84,7 @@ impl ksni::Tray for LaptopTuneTray {
             }
             .into(),
             CheckmarkItem {
-                label: "Performance".into(),
+                label: t.mode_performance.into(),
                 checked: active == "performance",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("performance".into()));
@@ -93,7 +93,7 @@ impl ksni::Tray for LaptopTuneTray {
             }
             .into(),
             CheckmarkItem {
-                label: "Max".into(),
+                label: t.mode_max.into(),
                 checked: active == "max",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("max".into()));
