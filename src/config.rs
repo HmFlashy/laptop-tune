@@ -2,10 +2,25 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct AppConfig {
     pub startup_profile: Option<String>,
     pub apply_on_startup: bool,
+    pub auto_switch_ac_bat: bool,
+    pub ac_profile: String,
+    pub bat_profile: String,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            startup_profile: None,
+            apply_on_startup: false,
+            auto_switch_ac_bat: false,
+            ac_profile: "performance".into(),
+            bat_profile: "eco".into(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -93,6 +108,15 @@ pub fn load_config_from(path: &Path) -> AppConfig {
                 "apply_on_startup" => {
                     cfg.apply_on_startup = v.trim() == "true";
                 }
+                "auto_switch_ac_bat" => {
+                    cfg.auto_switch_ac_bat = v.trim() == "true";
+                }
+                "ac_profile" if !v.trim().is_empty() => {
+                    cfg.ac_profile = v.trim().to_string();
+                }
+                "bat_profile" if !v.trim().is_empty() => {
+                    cfg.bat_profile = v.trim().to_string();
+                }
                 _ => {}
             }
         }
@@ -106,8 +130,8 @@ pub fn save_config_to(path: &Path, cfg: &AppConfig) -> Result<(), String> {
     }
     let startup = cfg.startup_profile.as_deref().unwrap_or("");
     let content = format!(
-        "startup_profile={startup}\napply_on_startup={}\n",
-        cfg.apply_on_startup
+        "startup_profile={startup}\napply_on_startup={}\nauto_switch_ac_bat={}\nac_profile={}\nbat_profile={}\n",
+        cfg.apply_on_startup, cfg.auto_switch_ac_bat, cfg.ac_profile, cfg.bat_profile
     );
     fs::write(path, content).map_err(|e| format!("{}: {e}", path.display()))
 }
@@ -142,6 +166,9 @@ mod tests {
         let cfg = AppConfig {
             startup_profile: Some("eco".into()),
             apply_on_startup: true,
+            auto_switch_ac_bat: true,
+            ac_profile: "gaming".into(),
+            bat_profile: "eco".into(),
         };
         save_config_to(&path, &cfg).unwrap();
 

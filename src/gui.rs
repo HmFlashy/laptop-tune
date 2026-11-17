@@ -284,30 +284,43 @@ impl eframe::App for LaptopTuneApp {
                                 }
                             }
                             if ui
-                                .checkbox(&mut self.config.apply_on_startup, "Apply on startup:")
+                                .checkbox(&mut self.config.auto_switch_ac_bat, "Auto-switch:")
                                 .changed()
                             {
-                                if self.config.startup_profile.is_none() {
-                                    self.config.startup_profile = Some("balanced".into());
-                                }
                                 self.save_config();
                             }
-                            let selected = self
-                                .config
-                                .startup_profile
-                                .get_or_insert_with(|| "balanced".into())
-                                .clone();
-                            let mut next_selected = selected.clone();
-                            egui::ComboBox::from_id_salt("startup_profile_combo")
-                                .selected_text(&selected)
-                                .width(105.0)
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new("On AC:").size(12.0).color(MUTED_TEXT));
+                            let mut ac = self.config.ac_profile.clone();
+                            egui::ComboBox::from_id_salt("ac_profile_combo")
+                                .selected_text(&ac)
+                                .width(100.0)
                                 .show_ui(ui, |ui| {
                                     for prof in ["eco", "balanced", "performance", "gaming"] {
-                                        ui.selectable_value(&mut next_selected, prof.into(), prof);
+                                        ui.selectable_value(&mut ac, prof.into(), prof);
                                     }
                                 });
-                            if next_selected != selected {
-                                self.config.startup_profile = Some(next_selected);
+                            if ac != self.config.ac_profile {
+                                self.config.ac_profile = ac;
+                                self.save_config();
+                            }
+                            ui.label(
+                                egui::RichText::new("On Battery:")
+                                    .size(12.0)
+                                    .color(MUTED_TEXT),
+                            );
+                            let mut bat = self.config.bat_profile.clone();
+                            egui::ComboBox::from_id_salt("bat_profile_combo")
+                                .selected_text(&bat)
+                                .width(100.0)
+                                .show_ui(ui, |ui| {
+                                    for prof in ["eco", "balanced", "performance", "gaming"] {
+                                        ui.selectable_value(&mut bat, prof.into(), prof);
+                                    }
+                                });
+                            if bat != self.config.bat_profile {
+                                self.config.bat_profile = bat;
                                 self.save_config();
                             }
                         });

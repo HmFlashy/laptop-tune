@@ -1,18 +1,22 @@
 use std::env;
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command};
+use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 use ksni::blocking::{Handle, TrayMethods};
 
+use crate::config::{default_config_path, load_config_from};
+use crate::daemon::is_on_ac_in;
 use crate::snapshot::{guess_active_profile, read_profile_state_in};
 
 pub enum TrayEvent {
     ToggleWindow,
     ApplyProfile(String),
+    PowerChanged,
     Refresh,
     Quit,
 }
@@ -168,6 +172,30 @@ fn spawn_gui_window(exe: &Path, allow_startup: bool) -> Option<Child> {
     cmd.spawn().ok()
 }
 
+fn spawn_power_watcher(tx: Sender<TrayEvent>) {
+    thread::spawn(move || {
+        let Ok(mut child) = Command::new("udevadm")
+            .args(["monitor", "--udev", "--subsystem-match=power_supply"])
+            .stdout(Stdio::piped())
+            .spawn()
+        else {
+            return;
+        };
+        if let Some(stdout) = child.stdout.take() {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines().map_while(Result::ok) {
+                if line.contains("UDEV") && line.contains("power_supply") {
+                    if tx.send(TrayEvent::PowerChanged).is_err() {
+                        break;
+                    }
+                }
+            }
+        }
+        let _ = child.kill();
+        let _ = child.wait();
+    });
+}
+
 /// Runs a lightweight event-driven system-tray host (zero polling).
 pub fn run_tray_host() {
     let Some(tray) = spawn_tray() else {
@@ -176,8 +204,10 @@ pub fn run_tray_host() {
     };
 
     let sock_path = spawn_socket_listener(tray.tx.clone());
+    spawn_power_watcher(tray.tx.clone());
     let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
     let mut child: Option<Child> = spawn_gui_window(&exe, true);
+    let mut last_ac = is_on_ac_in(Path::new("/sys/class/power_supply"));
 
     while let Ok(ev) = tray.rx.recv() {
         match ev {
@@ -203,6 +233,28 @@ pub fn run_tray_host() {
                     .arg(&name)
                     .status();
                 tray._handle.update(|_| {});
+            }
+            TrayEvent::PowerChanged => {
+                let on_ac = is_on_ac_in(Path::new("/sys/class/power_supply"));
+                if on_ac != last_ac {
+                    last_ac = on_ac;
+                    if let Some(cfg_path) = default_config_path() {
+                        let cfg = load_config_from(&cfg_path);
+                        if cfg.auto_switch_ac_bat {
+                            let target = if on_ac {
+                                &cfg.ac_profile
+                            } else {
+                                &cfg.bat_profile
+                            };
+                            let _ = Command::new("pkexec")
+                                .arg(&exe)
+                                .arg("profile")
+                                .arg(target)
+                                .status();
+                        }
+                    }
+                    tray._handle.update(|_| {});
+                }
             }
             TrayEvent::Refresh => {
                 tray._handle.update(|_| {});
