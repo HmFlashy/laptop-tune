@@ -4,6 +4,10 @@ use std::time::{Duration, Instant};
 
 use eframe::egui;
 
+use crate::config::{
+    default_autostart_path, default_config_path, load_config_from, save_config_to,
+    set_autostart_at, AppConfig,
+};
 use crate::gpu::vendor_name;
 use crate::snapshot::{collect_snapshot, Snapshot};
 use crate::tray::{spawn_tray, TrayEvent, TrayHandle};
@@ -23,11 +27,18 @@ struct LaptopTuneApp {
     window_minimized: bool,
     tray: Option<TrayHandle>,
     styled: bool,
+    config: AppConfig,
+    autostart_enabled: bool,
+    startup_applied: bool,
 }
 
 impl LaptopTuneApp {
     fn new(_minimize_to_tray: bool) -> Self {
         let tray = spawn_tray();
+        let config = default_config_path()
+            .map(|p| load_config_from(&p))
+            .unwrap_or_default();
+        let autostart_enabled = default_autostart_path().is_some_and(|p| p.exists());
         Self {
             snapshot: collect_snapshot(),
             last_refresh: Instant::now(),
@@ -35,6 +46,9 @@ impl LaptopTuneApp {
             window_minimized: false,
             tray,
             styled: false,
+            config,
+            autostart_enabled,
+            startup_applied: false,
         }
     }
 
@@ -54,7 +68,7 @@ impl LaptopTuneApp {
         ctx.set_style(style);
     }
 
-    fn run_privileged(&mut self, args: &[&str], success_msg: String) {
+    fn run_privileged(&mut self, args: &[&str], success_msg: String) -> bool {
         let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
         let result = Command::new("pkexec").arg(&exe).args(args).output();
 
@@ -62,6 +76,7 @@ impl LaptopTuneApp {
             Ok(out) if out.status.success() => {
                 self.status_msg = Some((success_msg, false));
                 self.snapshot = collect_snapshot();
+                true
             }
             Ok(out) => {
                 let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
@@ -71,19 +86,35 @@ impl LaptopTuneApp {
                     err
                 };
                 self.status_msg = Some((msg, true));
+                false
             }
             Err(e) => {
                 self.status_msg = Some((format!("pkexec error: {e}"), true));
+                false
             }
         }
     }
 
+    fn save_config(&self) {
+        if let Some(path) = default_config_path() {
+            let _ = save_config_to(&path, &self.config);
+        }
+    }
+
     fn apply_profile(&mut self, name: &str) {
-        self.run_privileged(&["profile", name], format!("Profile '{name}' applied."));
+        let ok = self.run_privileged(&["profile", name], format!("Profile '{name}' applied."));
+        if ok {
+            self.config.last_profile = Some(name.to_string());
+            self.save_config();
+        }
     }
 
     fn reset_defaults(&mut self) {
-        self.run_privileged(&["reset"], "Defaults restored (balanced).".into());
+        let ok = self.run_privileged(&["reset"], "Defaults restored (balanced).".into());
+        if ok {
+            self.config.last_profile = Some("balanced".into());
+            self.save_config();
+        }
     }
 
     fn handle_tray_events(&mut self, ctx: &egui::Context) {
@@ -159,6 +190,14 @@ impl eframe::App for LaptopTuneApp {
         if !self.styled {
             Self::apply_theme(ctx);
             self.styled = true;
+        }
+        if !self.startup_applied {
+            self.startup_applied = true;
+            if self.config.apply_on_startup {
+                if let Some(last) = self.config.last_profile.clone() {
+                    self.apply_profile(&last);
+                }
+            }
         }
 
         self.handle_tray_events(ctx);
@@ -278,6 +317,35 @@ impl eframe::App for LaptopTuneApp {
                         if let Some(p) = clicked {
                             self.apply_profile(p);
                         }
+                        ui.add_space(4.0);
+                        ui.horizontal(|ui| {
+                            if ui
+                                .checkbox(&mut self.autostart_enabled, "Start on login")
+                                .changed()
+                            {
+                                if let Some(path) = default_autostart_path() {
+                                    let exe =
+                                        env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
+                                    if let Err(e) =
+                                        set_autostart_at(&path, &exe, self.autostart_enabled)
+                                    {
+                                        self.status_msg = Some((e, true));
+                                    }
+                                }
+                            }
+                            let saved_label = self
+                                .config
+                                .last_profile
+                                .as_deref()
+                                .map(|p| format!("Apply '{p}' on startup"))
+                                .unwrap_or_else(|| "Apply last profile on startup".into());
+                            if ui
+                                .checkbox(&mut self.config.apply_on_startup, saved_label)
+                                .changed()
+                            {
+                                self.save_config();
+                            }
+                        });
                         if let Some((msg, is_err)) = &self.status_msg {
                             ui.add_space(4.0);
                             let col = if *is_err { ACCENT_RED } else { ACCENT_GREEN };

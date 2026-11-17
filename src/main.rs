@@ -1,4 +1,5 @@
 mod battery;
+mod config;
 mod gpu;
 mod gui;
 mod profile;
