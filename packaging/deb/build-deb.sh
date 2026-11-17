@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="2.2.0"
+VERSION="2.3.0"
 if command -v dpkg >/dev/null 2>&1; then
   ARCH="$(dpkg --print-architecture)"
 else
