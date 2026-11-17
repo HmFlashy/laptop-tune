@@ -5,9 +5,9 @@
 CLI, interface graphique native et démon événementiel en Rust pour auditer et optimiser les PC portables sous Linux : gestion d'énergie des GPU hybrides (Intel / AMD / NVIDIA), profils CPU, PCIe ASPM, états de veille, températures et seuils de charge batterie.
 
 <p align="center">
-  <img src="assets/gui.png" alt="Interface graphique laptop-tune" width="440" />
+  <img src="assets/gui.fr.png" alt="Interface graphique laptop-tune" width="280" />
   &nbsp;&nbsp;&nbsp;
-  <img src="assets/tray-menu.png" alt="Menu de la barre des tâches laptop-tune" width="180" />
+  <img src="assets/tray-menu.fr.png" alt="Menu de la barre des tâches laptop-tune" width="115" />
 </p>
 
 ## Fonctionnalités

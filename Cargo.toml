@@ -9,6 +9,7 @@ homepage = "https://github.com/HmFlashy/laptop-tune"
 readme = "README.md"
 keywords = ["linux", "laptop", "power", "gpu", "battery"]
 categories = ["command-line-utilities", "gui", "hardware-support", "os::linux-apis"]
+exclude = ["docs/assets/*"]
 
 [dependencies]
 eframe = { version = "0.37", default-features = false, features = ["glow", "wayland", "x11", "default_fonts"] }

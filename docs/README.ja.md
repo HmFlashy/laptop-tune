@@ -5,9 +5,9 @@
 Linux ノート PC 向けの Rust 製 CLI・ネイティブ GUI・イベント駆動デーモン：ハイブリッド GPU のランタイム電源管理（Intel / AMD / NVIDIA）、CPU 電源プロファイル、PCIe ASPM、スリープ状態、温度モニター、バッテリー充電しきい値を一括管理します。
 
 <p align="center">
-  <img src="assets/gui.png" alt="laptop-tune GUI" width="440" />
+  <img src="assets/gui.png" alt="laptop-tune GUI" width="280" />
   &nbsp;&nbsp;&nbsp;
-  <img src="assets/tray-menu.png" alt="laptop-tune トレイメニュー" width="180" />
+  <img src="assets/tray-menu.png" alt="laptop-tune トレイメニュー" width="115" />
 </p>
 
 ## 主な機能

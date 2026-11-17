@@ -5,9 +5,9 @@
 基于 Rust 编写的 Linux 笔记本电源与性能调优工具（含命令行、原生桌面 GUI 与事件驱动守护进程）：支持混合显卡运行时电源管理（Intel / AMD / NVIDIA）、CPU 性能模式、PCIe ASPM、休眠状态、温度监控以及电池充电阈值管理。
 
 <p align="center">
-  <img src="assets/gui.png" alt="laptop-tune 桌面面板" width="440" />
+  <img src="assets/gui.png" alt="laptop-tune 桌面面板" width="280" />
   &nbsp;&nbsp;&nbsp;
-  <img src="assets/tray-menu.png" alt="laptop-tune 托盘菜单" width="180" />
+  <img src="assets/tray-menu.png" alt="laptop-tune 托盘菜单" width="115" />
 </p>
 
 ## 功能特性

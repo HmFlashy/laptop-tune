@@ -130,11 +130,20 @@ fn cmd_reset(dry_run: bool) {
     println!("Done.");
 }
 
+fn force_igpu_and_disable_overlays() {
+    env::set_var("MANGOHUD", "0");
+    env::set_var("DISABLE_MANGOHUD", "1");
+    env::set_var("__NV_PRIME_RENDER_OFFLOAD", "0");
+    env::set_var("__GLX_VENDOR_LIBRARY_NAME", "mesa");
+    env::set_var("VK_LOADER_DRIVERS_DISABLE", "*nvidia*");
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(String::as_str) {
         Some("status") | None => cmd_status(),
         Some("gui") => {
+            force_igpu_and_disable_overlays();
             if args.iter().any(|a| a == "--tray") {
                 tray::run_tray_host();
             } else {
