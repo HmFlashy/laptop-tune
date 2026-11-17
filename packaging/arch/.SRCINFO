@@ -1,0 +1,18 @@
+pkgbase = laptop-tune
+	pkgdesc = Unified Linux laptop auditor and configurator for hybrid GPU PM, CPU profiles, thermals, and battery thresholds
+	pkgver = 2.7.2
+	pkgrel = 1
+	url = https://github.com/HmFlashy/laptop-tune
+	install = laptop-tune.install
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = cargo
+	depends = gcc-libs
+	depends = glibc
+	depends = hicolor-icon-theme
+	depends = polkit
+	source = laptop-tune-2.7.2.tar.gz::https://github.com/HmFlashy/laptop-tune/archive/v2.7.2.tar.gz
+	sha256sums = SKIP
+
+pkgname = laptop-tune

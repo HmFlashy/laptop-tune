@@ -1,0 +1,16 @@
+post_install() {
+  if [ -d /etc/udev/rules.d ] && [ -x /usr/bin/laptop-tune ]; then
+    /usr/bin/laptop-tune generate-rules | awk '/^# === Generated TLP/{exit} {print}' > /etc/udev/rules.d/90-laptop-tune-gpu.rules || true
+    udevadm control --reload-rules 2>/dev/null || true
+  fi
+  pkill -f "laptop-tune gui" 2>/dev/null || true
+}
+
+post_upgrade() {
+  post_install
+}
+
+post_remove() {
+  rm -f /etc/udev/rules.d/90-laptop-tune-gpu.rules
+  udevadm control --reload-rules 2>/dev/null || true
+}

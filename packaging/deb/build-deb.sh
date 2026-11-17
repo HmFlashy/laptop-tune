@@ -26,8 +26,21 @@ install -Dm644 packaging/laptop-tune.desktop "${BUILD_DIR}/usr/share/application
 install -Dm644 packaging/laptop-tune.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/laptop-tune.svg"
 install -Dm644 packaging/org.laptop-tune.policy "${BUILD_DIR}/usr/share/polkit-1/actions/org.laptop-tune.policy"
 install -Dm644 packaging/laptop-tune.service "${BUILD_DIR}/lib/systemd/system/laptop-tune.service"
+install -Dm644 packaging/99-laptop-tune-override.conf "${BUILD_DIR}/etc/tlp.d/99-laptop-tune-override.conf"
 install -Dm644 README.md "${BUILD_DIR}/usr/share/doc/laptop-tune/README.md"
 install -Dm644 LICENSE "${BUILD_DIR}/usr/share/doc/laptop-tune/copyright"
+
+cat > "${BUILD_DIR}/DEBIAN/postinst" <<'EOF'
+#!/bin/sh
+set -e
+if [ -d /etc/udev/rules.d ] && [ -x /usr/bin/laptop-tune ]; then
+  /usr/bin/laptop-tune generate-rules | awk '/^# === Generated TLP/{exit} {print}' > /etc/udev/rules.d/90-laptop-tune-gpu.rules || true
+  udevadm control --reload-rules 2>/dev/null || true
+fi
+pkill -f "laptop-tune gui" 2>/dev/null || true
+exit 0
+EOF
+chmod 0755 "${BUILD_DIR}/DEBIAN/postinst"
 
 cat > "${BUILD_DIR}/DEBIAN/control" <<EOF
 Package: laptop-tune
