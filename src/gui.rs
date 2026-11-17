@@ -407,7 +407,7 @@ impl eframe::App for LaptopTuneApp {
                                             .selected_text(format!("{sel_s}%"))
                                             .width(68.0)
                                             .show_ui(ui, |ui| {
-                                                for val in [50u8, 60, 70, 80, 90] {
+                                                for val in [50u8, 60, 70, 80] {
                                                     ui.selectable_value(
                                                         &mut sel_s,
                                                         val,
