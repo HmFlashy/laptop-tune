@@ -172,7 +172,7 @@ impl eframe::App for LaptopTuneApp {
                     .fill(egui::Color32::from_rgb(15, 23, 42))
                     .inner_margin(14.0),
             )
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 // Header
                 ui.horizontal(|ui| {
                     ui.label(
