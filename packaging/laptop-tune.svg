@@ -1,15 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2ecc71"/>
-      <stop offset="100%" stop-color="#3daee9"/>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#31363b"/>
+      <stop offset="100%" stop-color="#232629"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3daee9"/>
+      <stop offset="100%" stop-color="#2ecc71"/>
     </linearGradient>
   </defs>
 
-  <!-- Full-bleed circular badge matching standard Linux tray icons (r=62 in 128x128) -->
-  <circle cx="64" cy="64" r="62" fill="url(#ring)"/>
-  <circle cx="64" cy="64" r="48" fill="#232a30"/>
+  <rect x="2" y="2" width="124" height="124" rx="28" fill="url(#bg)" stroke="#474d54" stroke-width="3"/>
 
-  <!-- High-contrast white lightning bolt -->
-  <polygon points="72,24 40,68 62,68 54,105 90,59 67,59" fill="#ffffff"/>
+  <circle cx="64" cy="60" r="42" fill="none" stroke="#474d54" stroke-width="10" stroke-linecap="round"
+          stroke-dasharray="195 264" transform="rotate(138 64 60)"/>
+  <circle cx="64" cy="60" r="42" fill="none" stroke="url(#accent)" stroke-width="10" stroke-linecap="round"
+          stroke-dasharray="142 264" transform="rotate(138 64 60)"/>
+
+  <polygon points="68,30 46,64 61,64 56,92 82,56 66,56" fill="#3daee9"/>
+
+  <rect x="30" y="106" width="68" height="8" rx="4" fill="#95a5a6"/>
 </svg>
