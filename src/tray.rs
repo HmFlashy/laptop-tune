@@ -1,7 +1,8 @@
 use std::env;
 use std::path::Path;
 use std::process::{Child, Command};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::time::Duration;
 
 use ksni::blocking::{Handle, TrayMethods};
 
@@ -138,10 +139,11 @@ pub fn run_tray_host() {
 
     let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
     let mut child: Option<Child> = spawn_gui_window(&exe);
+    let mut last_active = guess_active_profile(&read_profile_state_in(Path::new("/sys")));
 
-    while let Ok(ev) = tray.rx.recv() {
-        match ev {
-            TrayEvent::ToggleWindow => {
+    loop {
+        match tray.rx.recv_timeout(Duration::from_secs(2)) {
+            Ok(TrayEvent::ToggleWindow) => {
                 let is_running = child
                     .as_mut()
                     .and_then(|c| c.try_wait().ok().flatten())
@@ -156,20 +158,28 @@ pub fn run_tray_host() {
                     child = spawn_gui_window(&exe);
                 }
             }
-            TrayEvent::ApplyProfile(name) => {
+            Ok(TrayEvent::ApplyProfile(name)) => {
                 let _ = Command::new("pkexec")
                     .arg(&exe)
                     .arg("profile")
                     .arg(&name)
                     .status();
                 tray._handle.update(|_| {});
+                last_active = guess_active_profile(&read_profile_state_in(Path::new("/sys")));
             }
-            TrayEvent::Quit => {
+            Ok(TrayEvent::Quit) | Err(RecvTimeoutError::Disconnected) => {
                 if let Some(mut c) = child.take() {
                     let _ = c.kill();
                     let _ = c.wait();
                 }
                 break;
+            }
+            Err(RecvTimeoutError::Timeout) => {
+                let current = guess_active_profile(&read_profile_state_in(Path::new("/sys")));
+                if current != last_active {
+                    last_active = current;
+                    tray._handle.update(|_| {});
+                }
             }
         }
     }
