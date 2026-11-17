@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Laptop Tune
+Comment=Monitor battery, GPU runtime PM, thermals, and switch power profiles
+Exec=laptop-tune gui --tray
+Icon=laptop-tune
+Terminal=false
+Categories=System;Settings;HardwareSettings;
+Keywords=battery;power;gpu;nvidia;thermal;profile;

@@ -5,6 +5,10 @@ edition = "2021"
 description = "Unified Linux laptop power, hybrid GPU runtime PM, thermal, and battery threshold auditor & configurator."
 license = "MIT"
 
+[dependencies]
+eframe = "0.31"
+ksni = { version = "0.3", features = ["blocking"] }
+
 [[bin]]
 name = "laptop-tune"
 path = "src/main.rs"
