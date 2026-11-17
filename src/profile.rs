@@ -49,6 +49,10 @@ pub fn choose_platform_profile<'a>(spec: &ProfileSpec, choices: &str) -> Option<
         .find(|c| choices.split_whitespace().any(|avail| avail == *c))
 }
 
+pub fn reset_defaults_in(sys_root: &Path, dry_run: bool) -> Result<(), String> {
+    apply_profile_in(sys_root, "balanced", dry_run)
+}
+
 pub fn apply_profile_in(sys_root: &Path, name: &str, dry_run: bool) -> Result<(), String> {
     let spec = PROFILES
         .iter()
@@ -265,6 +269,49 @@ mod tests {
         assert_eq!(
             read_trimmed(&sys.join("devices/system/cpu/cpufreq/boost")).as_deref(),
             Some("1")
+        );
+    }
+
+    #[test]
+    fn test_reset_defaults_restores_balanced() {
+        let tmp = TempDir::new("reset");
+        let sys = &tmp.0;
+
+        write_mock(
+            &sys.join("firmware/acpi/platform_profile_choices"),
+            "cool quiet balanced performance\n",
+        );
+        write_mock(&sys.join("firmware/acpi/platform_profile"), "performance\n");
+        write_mock(
+            &sys.join("devices/system/cpu/cpu0/cpufreq/energy_performance_preference"),
+            "power\n",
+        );
+        write_mock(&sys.join("devices/system/cpu/intel_pstate/no_turbo"), "1\n");
+        write_mock(
+            &sys.join("module/pcie_aspm/parameters/policy"),
+            "powersupersave\n",
+        );
+
+        reset_defaults_in(sys, false).unwrap();
+
+        assert_eq!(
+            read_trimmed(&sys.join("firmware/acpi/platform_profile")).as_deref(),
+            Some("balanced")
+        );
+        assert_eq!(
+            read_trimmed(
+                &sys.join("devices/system/cpu/cpu0/cpufreq/energy_performance_preference")
+            )
+            .as_deref(),
+            Some("balance_performance")
+        );
+        assert_eq!(
+            read_trimmed(&sys.join("devices/system/cpu/intel_pstate/no_turbo")).as_deref(),
+            Some("0")
+        );
+        assert_eq!(
+            read_trimmed(&sys.join("module/pcie_aspm/parameters/policy")).as_deref(),
+            Some("default")
         );
     }
 }

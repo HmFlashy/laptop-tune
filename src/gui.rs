@@ -32,23 +32,19 @@ impl LaptopTuneApp {
         }
     }
 
-    fn apply_profile(&mut self, name: &str) {
+    fn run_privileged(&mut self, args: &[&str], success_msg: String) {
         let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
-        let result = Command::new("pkexec")
-            .arg(&exe)
-            .arg("profile")
-            .arg(name)
-            .output();
+        let result = Command::new("pkexec").arg(&exe).args(args).output();
 
         match result {
             Ok(out) if out.status.success() => {
-                self.status_msg = Some(format!("Profile '{name}' applied."));
+                self.status_msg = Some(success_msg);
                 self.snapshot = collect_snapshot();
             }
             Ok(out) => {
                 let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
                 self.status_msg = Some(if err.is_empty() {
-                    format!("Failed or cancelled applying '{name}'.")
+                    "Action failed or cancelled.".into()
                 } else {
                     err
                 });
@@ -57,6 +53,14 @@ impl LaptopTuneApp {
                 self.status_msg = Some(format!("pkexec error: {e}"));
             }
         }
+    }
+
+    fn apply_profile(&mut self, name: &str) {
+        self.run_privileged(&["profile", name], format!("Profile '{name}' applied."));
+    }
+
+    fn reset_defaults(&mut self) {
+        self.run_privileged(&["reset"], "Defaults restored (balanced).".into());
     }
 
     fn handle_tray_events(&mut self, ctx: &egui::Context) {
@@ -135,9 +139,16 @@ impl eframe::App for LaptopTuneApp {
                                 clicked = Some(prof);
                             }
                         }
+                        if ui.button("Reset Default").clicked() {
+                            clicked = Some("__reset__");
+                        }
                     });
                     if let Some(p) = clicked {
-                        self.apply_profile(p);
+                        if p == "__reset__" {
+                            self.reset_defaults();
+                        } else {
+                            self.apply_profile(p);
+                        }
                     }
                     if let Some(msg) = &self.status_msg {
                         ui.add_space(4.0);

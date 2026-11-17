@@ -12,7 +12,7 @@ use std::path::Path;
 use std::process;
 
 use gpu::vendor_name;
-use profile::apply_profile_in;
+use profile::{apply_profile_in, reset_defaults_in};
 use rules::generate_rules_text;
 use snapshot::collect_snapshot;
 
@@ -108,8 +108,21 @@ fn print_help() {
         "  gui [--tray]                Launch the native desktop GUI (optionally minimize to tray)"
     );
     println!("  profile <name> [--dry-run]  Apply profile (eco | balanced | performance | gaming)");
+    println!("  reset [--dry-run]           Restore safe default (balanced) kernel settings");
     println!("  generate-rules              Detect hardware and print udev + TLP configs");
     println!("  help                        Show this help message");
+}
+
+fn cmd_reset(dry_run: bool) {
+    println!(
+        "Resetting to default (balanced) settings{}...",
+        if dry_run { " (dry-run)" } else { "" }
+    );
+    if let Err(e) = reset_defaults_in(Path::new("/sys"), dry_run) {
+        eprintln!("{e}");
+        process::exit(1);
+    }
+    println!("Done.");
 }
 
 fn main() {
@@ -127,6 +140,10 @@ fn main() {
             };
             let dry_run = args.iter().any(|a| a == "--dry-run");
             cmd_profile(name, dry_run);
+        }
+        Some("reset") => {
+            let dry_run = args.iter().any(|a| a == "--dry-run");
+            cmd_reset(dry_run);
         }
         Some("generate-rules") => cmd_generate_rules(),
         Some("help") | Some("--help") | Some("-h") => print_help(),
