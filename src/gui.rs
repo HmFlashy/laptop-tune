@@ -8,14 +8,23 @@ use crate::gpu::vendor_name;
 use crate::snapshot::{collect_snapshot, Snapshot};
 use crate::tray::{spawn_tray, TrayEvent, TrayHandle};
 
+const ACCENT_CYAN: egui::Color32 = egui::Color32::from_rgb(56, 189, 248);
+const ACCENT_GREEN: egui::Color32 = egui::Color32::from_rgb(34, 197, 94);
+const ACCENT_AMBER: egui::Color32 = egui::Color32::from_rgb(250, 204, 21);
+const ACCENT_RED: egui::Color32 = egui::Color32::from_rgb(248, 113, 113);
+const CARD_BG: egui::Color32 = egui::Color32::from_rgb(22, 30, 46);
+const CARD_BORDER: egui::Color32 = egui::Color32::from_rgb(51, 65, 85);
+const MUTED_TEXT: egui::Color32 = egui::Color32::from_rgb(148, 163, 184);
+
 struct LaptopTuneApp {
     snapshot: Snapshot,
     last_refresh: Instant,
-    status_msg: Option<String>,
+    status_msg: Option<(String, bool)>,
     minimize_to_tray: bool,
     window_visible: bool,
     tray: Option<TrayHandle>,
     force_quit: bool,
+    styled: bool,
 }
 
 impl LaptopTuneApp {
@@ -29,7 +38,24 @@ impl LaptopTuneApp {
             window_visible: true,
             tray,
             force_quit: false,
+            styled: false,
         }
+    }
+
+    fn apply_theme(ctx: &egui::Context) {
+        let mut visuals = egui::Visuals::dark();
+        visuals.panel_fill = egui::Color32::from_rgb(15, 23, 42);
+        visuals.widgets.noninteractive.bg_fill = CARD_BG;
+        visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(30, 41, 59);
+        visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(51, 65, 85);
+        visuals.widgets.active.bg_fill = egui::Color32::from_rgb(71, 85, 105);
+        visuals.selection.bg_fill = ACCENT_CYAN.linear_multiply(0.35);
+        ctx.set_visuals(visuals);
+
+        let mut style = (*ctx.style()).clone();
+        style.spacing.item_spacing = egui::vec2(8.0, 8.0);
+        style.spacing.button_padding = egui::vec2(12.0, 6.0);
+        ctx.set_style(style);
     }
 
     fn run_privileged(&mut self, args: &[&str], success_msg: String) {
@@ -38,19 +64,20 @@ impl LaptopTuneApp {
 
         match result {
             Ok(out) if out.status.success() => {
-                self.status_msg = Some(success_msg);
+                self.status_msg = Some((success_msg, false));
                 self.snapshot = collect_snapshot();
             }
             Ok(out) => {
                 let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
-                self.status_msg = Some(if err.is_empty() {
+                let msg = if err.is_empty() {
                     "Action failed or cancelled.".into()
                 } else {
                     err
-                });
+                };
+                self.status_msg = Some((msg, true));
             }
             Err(e) => {
-                self.status_msg = Some(format!("pkexec error: {e}"));
+                self.status_msg = Some((format!("pkexec error: {e}"), true));
             }
         }
     }
@@ -89,10 +116,56 @@ impl LaptopTuneApp {
             }
         }
     }
+
+    fn active_profile_guess(&self) -> &'static str {
+        let p = &self.snapshot.profile;
+        if p.cpu_epp == "power" || p.platform == "quiet" || p.platform == "cool" {
+            "eco"
+        } else if p.platform == "balanced" || p.cpu_epp == "balance_performance" {
+            "balanced"
+        } else if p.platform == "performance" {
+            "performance"
+        } else {
+            ""
+        }
+    }
+}
+
+fn card_frame() -> egui::Frame {
+    egui::Frame::new()
+        .fill(CARD_BG)
+        .stroke(egui::Stroke::new(1.0, CARD_BORDER))
+        .corner_radius(egui::CornerRadius::same(10))
+        .inner_margin(egui::Margin::same(12))
+}
+
+fn section_title(ui: &mut egui::Ui, title: &str) {
+    ui.label(
+        egui::RichText::new(title)
+            .size(14.0)
+            .strong()
+            .color(ACCENT_CYAN),
+    );
+}
+
+fn pill(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
+    egui::Frame::new()
+        .fill(color.linear_multiply(0.16))
+        .stroke(egui::Stroke::new(1.0, color.linear_multiply(0.5)))
+        .corner_radius(egui::CornerRadius::same(6))
+        .inner_margin(egui::Margin::symmetric(8, 3))
+        .show(ui, |ui| {
+            ui.label(egui::RichText::new(text).size(11.5).strong().color(color));
+        });
 }
 
 impl eframe::App for LaptopTuneApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if !self.styled {
+            Self::apply_theme(ctx);
+            self.styled = true;
+        }
+
         self.handle_tray_events(ctx);
 
         if ctx.input(|i| i.viewport().close_requested())
@@ -110,142 +183,259 @@ impl eframe::App for LaptopTuneApp {
         }
         ctx.request_repaint_after(Duration::from_millis(1500));
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading("laptop-tune");
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if self.tray.is_some() {
-                        ui.checkbox(&mut self.minimize_to_tray, "Minimize to tray");
-                    }
-                });
-            });
-            ui.add_space(6.0);
-
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                // Profiles
-                ui.group(|ui| {
-                    ui.label(egui::RichText::new("Power Profile").strong());
-                    ui.label(format!(
-                        "Platform: {}  |  EPP: {}  |  Turbo: {}",
-                        self.snapshot.profile.platform,
-                        self.snapshot.profile.cpu_epp,
-                        self.snapshot.profile.turbo
-                    ));
-                    ui.add_space(4.0);
-                    let mut clicked: Option<&str> = None;
-                    ui.horizontal(|ui| {
-                        for prof in ["eco", "balanced", "performance", "gaming"] {
-                            if ui.button(prof).clicked() {
-                                clicked = Some(prof);
-                            }
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::new()
+                    .fill(egui::Color32::from_rgb(15, 23, 42))
+                    .inner_margin(14.0),
+            )
+            .show(ctx, |ui| {
+                // Header
+                ui.horizontal(|ui| {
+                    ui.label(
+                        egui::RichText::new("laptop-tune")
+                            .size(20.0)
+                            .strong()
+                            .color(egui::Color32::WHITE),
+                    );
+                    pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), ACCENT_CYAN);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button("Refresh").clicked() {
+                            self.snapshot = collect_snapshot();
+                            self.last_refresh = Instant::now();
                         }
-                        if ui.button("Reset Default").clicked() {
-                            clicked = Some("__reset__");
+                        if self.tray.is_some() {
+                            ui.checkbox(&mut self.minimize_to_tray, "Minimize to tray");
                         }
                     });
-                    if let Some(p) = clicked {
-                        if p == "__reset__" {
-                            self.reset_defaults();
-                        } else {
-                            self.apply_profile(p);
-                        }
-                    }
-                    if let Some(msg) = &self.status_msg {
-                        ui.add_space(4.0);
-                        ui.label(egui::RichText::new(msg).small());
-                    }
                 });
+                ui.add_space(10.0);
 
-                ui.add_space(6.0);
-
-                // Batteries
-                ui.group(|ui| {
-                    ui.label(egui::RichText::new("Battery").strong());
-                    if self.snapshot.batteries.is_empty() {
-                        ui.label("No battery detected.");
-                    } else {
-                        for bat in &self.snapshot.batteries {
-                            let pct = bat.capacity.parse::<f32>().unwrap_or(0.0) / 100.0;
-                            let power_str = bat
-                                .power_w
-                                .map(|w| format!(" | {w:.2} W"))
-                                .unwrap_or_default();
-                            ui.label(format!(
-                                "{}: {} ({}%){}",
-                                bat.name, bat.status, bat.capacity, power_str
-                            ));
-                            ui.add(egui::ProgressBar::new(pct).show_percentage());
-                            if let (Some(s), Some(e)) = (&bat.start_threshold, &bat.stop_threshold)
-                            {
-                                ui.label(format!("Thresholds: start {s}% / stop {e}%"));
-                            }
-                        }
-                    }
-                });
-
-                ui.add_space(6.0);
-
-                // GPUs
-                ui.group(|ui| {
-                    ui.label(egui::RichText::new("GPUs & Runtime PM").strong());
-                    for gpu in &self.snapshot.gpus {
-                        let color = if gpu.runtime_status == "suspended" {
-                            egui::Color32::LIGHT_GREEN
-                        } else {
-                            egui::Color32::KHAKI
-                        };
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    // 1. Power Profile Card
+                    card_frame().show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.label(format!(
-                                "{} ({} / {})",
-                                gpu.pci_slot,
-                                vendor_name(&gpu.vendor),
-                                gpu.driver
-                            ));
-                            ui.label(
-                                egui::RichText::new(format!(
-                                    "{} (control={})",
-                                    gpu.runtime_status, gpu.power_control
-                                ))
-                                .color(color),
+                            section_title(ui, "Power Profile");
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui
+                                        .add(
+                                            egui::Button::new(
+                                                egui::RichText::new("Reset Default").size(11.5),
+                                            )
+                                            .corner_radius(6.0),
+                                        )
+                                        .clicked()
+                                    {
+                                        self.reset_defaults();
+                                    }
+                                },
                             );
                         });
-                    }
-                    ui.label(format!("Sleep mode: {}", self.snapshot.mem_sleep));
-                });
+                        ui.add_space(4.0);
 
-                ui.add_space(6.0);
+                        ui.horizontal(|ui| {
+                            pill(
+                                ui,
+                                &format!("Platform: {}", self.snapshot.profile.platform),
+                                MUTED_TEXT,
+                            );
+                            pill(
+                                ui,
+                                &format!("EPP: {}", self.snapshot.profile.cpu_epp),
+                                MUTED_TEXT,
+                            );
+                            let turbo_col = if self.snapshot.profile.turbo == "on" {
+                                ACCENT_GREEN
+                            } else {
+                                MUTED_TEXT
+                            };
+                            pill(
+                                ui,
+                                &format!("Turbo: {}", self.snapshot.profile.turbo),
+                                turbo_col,
+                            );
+                        });
+                        ui.add_space(8.0);
 
-                // Thermals
-                ui.group(|ui| {
-                    ui.label(egui::RichText::new("Thermals").strong());
-                    egui::Grid::new("thermals_grid")
-                        .num_columns(2)
-                        .spacing([20.0, 4.0])
-                        .show(ui, |ui| {
-                            for (zone, deg) in &self.snapshot.thermals {
-                                let color = if *deg >= 85 {
-                                    egui::Color32::LIGHT_RED
-                                } else if *deg >= 68 {
-                                    egui::Color32::KHAKI
+                        let active = self.active_profile_guess();
+                        let mut clicked: Option<&str> = None;
+                        ui.horizontal(|ui| {
+                            for (id, label) in [
+                                ("eco", "Eco"),
+                                ("balanced", "Balanced"),
+                                ("performance", "Performance"),
+                                ("gaming", "Gaming"),
+                            ] {
+                                let is_active = active == id;
+                                let btn = if is_active {
+                                    egui::Button::new(
+                                        egui::RichText::new(label)
+                                            .strong()
+                                            .color(egui::Color32::from_rgb(15, 23, 42)),
+                                    )
+                                    .fill(ACCENT_CYAN)
+                                    .corner_radius(6.0)
                                 } else {
-                                    egui::Color32::LIGHT_GREEN
+                                    egui::Button::new(label).corner_radius(6.0)
                                 };
-                                ui.label(zone);
-                                ui.label(egui::RichText::new(format!("{deg}°C")).color(color));
-                                ui.end_row();
+                                if ui.add(btn).clicked() {
+                                    clicked = Some(id);
+                                }
                             }
                         });
+                        if let Some(p) = clicked {
+                            self.apply_profile(p);
+                        }
+                        if let Some((msg, is_err)) = &self.status_msg {
+                            ui.add_space(4.0);
+                            let col = if *is_err { ACCENT_RED } else { ACCENT_GREEN };
+                            ui.label(egui::RichText::new(msg).size(12.0).color(col));
+                        }
+                    });
+
+                    ui.add_space(10.0);
+
+                    // 2. Battery Card
+                    card_frame().show(ui, |ui| {
+                        section_title(ui, "Battery");
+                        ui.add_space(4.0);
+                        if self.snapshot.batteries.is_empty() {
+                            ui.label(egui::RichText::new("No battery detected.").color(MUTED_TEXT));
+                        } else {
+                            for bat in &self.snapshot.batteries {
+                                let pct_num = bat.capacity.parse::<f32>().unwrap_or(0.0);
+                                let pct = (pct_num / 100.0).clamp(0.0, 1.0);
+                                let bar_col = if pct_num >= 50.0 {
+                                    ACCENT_GREEN
+                                } else if pct_num >= 20.0 {
+                                    ACCENT_AMBER
+                                } else {
+                                    ACCENT_RED
+                                };
+                                ui.horizontal(|ui| {
+                                    ui.label(
+                                        egui::RichText::new(format!(
+                                            "{} — {} ({}%)",
+                                            bat.name, bat.status, bat.capacity
+                                        ))
+                                        .strong(),
+                                    );
+                                    if let Some(w) = bat.power_w {
+                                        ui.with_layout(
+                                            egui::Layout::right_to_left(egui::Align::Center),
+                                            |ui| {
+                                                pill(ui, &format!("{w:.2} W"), ACCENT_CYAN);
+                                            },
+                                        );
+                                    }
+                                });
+                                ui.add_space(4.0);
+                                ui.add(
+                                    egui::ProgressBar::new(pct)
+                                        .fill(bar_col)
+                                        .corner_radius(6.0)
+                                        .show_percentage(),
+                                );
+                                if let (Some(s), Some(e)) =
+                                    (&bat.start_threshold, &bat.stop_threshold)
+                                {
+                                    ui.add_space(4.0);
+                                    ui.label(
+                                        egui::RichText::new(format!(
+                                            "Charge thresholds: start {s}% / stop {e}%"
+                                        ))
+                                        .size(12.0)
+                                        .color(MUTED_TEXT),
+                                    );
+                                }
+                            }
+                        }
+                    });
+
+                    ui.add_space(10.0);
+
+                    // 3. GPUs & Sleep Card
+                    card_frame().show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            section_title(ui, "GPUs & Sleep");
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    pill(
+                                        ui,
+                                        &format!("sleep: {}", self.snapshot.mem_sleep),
+                                        MUTED_TEXT,
+                                    );
+                                },
+                            );
+                        });
+                        ui.add_space(4.0);
+                        for gpu in &self.snapshot.gpus {
+                            let (status_text, color) = if gpu.runtime_status == "suspended" {
+                                ("D3 SUSPENDED", ACCENT_GREEN)
+                            } else {
+                                ("ACTIVE", ACCENT_AMBER)
+                            };
+                            ui.horizontal(|ui| {
+                                ui.label(
+                                    egui::RichText::new(format!(
+                                        "{} ({} · {})",
+                                        vendor_name(&gpu.vendor),
+                                        gpu.driver,
+                                        gpu.pci_slot
+                                    ))
+                                    .size(13.0),
+                                );
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        pill(
+                                            ui,
+                                            &format!("{status_text} · {}", gpu.power_control),
+                                            color,
+                                        );
+                                    },
+                                );
+                            });
+                        }
+                    });
+
+                    ui.add_space(10.0);
+
+                    // 4. Thermals Card
+                    card_frame().show(ui, |ui| {
+                        section_title(ui, "Thermals");
+                        ui.add_space(4.0);
+                        egui::Grid::new("thermals_grid")
+                            .num_columns(2)
+                            .spacing([24.0, 6.0])
+                            .show(ui, |ui| {
+                                for (zone, deg) in &self.snapshot.thermals {
+                                    let color = if *deg >= 85 {
+                                        ACCENT_RED
+                                    } else if *deg >= 68 {
+                                        ACCENT_AMBER
+                                    } else {
+                                        ACCENT_GREEN
+                                    };
+                                    ui.label(egui::RichText::new(zone).color(MUTED_TEXT));
+                                    pill(ui, &format!("{deg}°C"), color);
+                                    ui.end_row();
+                                }
+                            });
+                    });
                 });
             });
-        });
     }
 }
 
 pub fn run_gui(minimize_to_tray: bool) {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([480.0, 560.0])
-            .with_min_inner_size([380.0, 420.0]),
+            .with_inner_size([520.0, 620.0])
+            .with_min_inner_size([400.0, 460.0]),
         ..Default::default()
     };
 
