@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct AppConfig {
-    pub last_profile: Option<String>,
+    pub startup_profile: Option<String>,
     pub apply_on_startup: bool,
 }
 
@@ -36,8 +36,8 @@ pub fn load_config_from(path: &Path) -> AppConfig {
         let line = line.trim();
         if let Some((k, v)) = line.split_once('=') {
             match k.trim() {
-                "last_profile" if !v.trim().is_empty() => {
-                    cfg.last_profile = Some(v.trim().to_string());
+                "startup_profile" | "last_profile" if !v.trim().is_empty() => {
+                    cfg.startup_profile = Some(v.trim().to_string());
                 }
                 "apply_on_startup" => {
                     cfg.apply_on_startup = v.trim() == "true";
@@ -53,9 +53,9 @@ pub fn save_config_to(path: &Path, cfg: &AppConfig) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;
     }
-    let last = cfg.last_profile.as_deref().unwrap_or("");
+    let startup = cfg.startup_profile.as_deref().unwrap_or("");
     let content = format!(
-        "last_profile={last}\napply_on_startup={}\n",
+        "startup_profile={startup}\napply_on_startup={}\n",
         cfg.apply_on_startup
     );
     fs::write(path, content).map_err(|e| format!("{}: {e}", path.display()))
@@ -89,7 +89,7 @@ mod tests {
         let path = tmp.0.join("laptop-tune/config.conf");
 
         let cfg = AppConfig {
-            last_profile: Some("eco".into()),
+            startup_profile: Some("eco".into()),
             apply_on_startup: true,
         };
         save_config_to(&path, &cfg).unwrap();

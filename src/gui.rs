@@ -96,19 +96,11 @@ impl LaptopTuneApp {
     }
 
     fn apply_profile(&mut self, name: &str) {
-        let ok = self.run_privileged(&["profile", name], format!("Profile '{name}' applied."));
-        if ok {
-            self.config.last_profile = Some(name.to_string());
-            self.save_config();
-        }
+        self.run_privileged(&["profile", name], format!("Profile '{name}' applied."));
     }
 
     fn reset_defaults(&mut self) {
-        let ok = self.run_privileged(&["reset"], "Defaults restored (balanced).".into());
-        if ok {
-            self.config.last_profile = Some("balanced".into());
-            self.save_config();
-        }
+        self.run_privileged(&["reset"], "Defaults restored (balanced).".into());
     }
 
     fn active_profile_guess(&self) -> &'static str {
@@ -154,8 +146,8 @@ impl eframe::App for LaptopTuneApp {
         if !self.startup_applied {
             self.startup_applied = true;
             if self.config.apply_on_startup {
-                if let Some(last) = self.config.last_profile.clone() {
-                    self.apply_profile(&last);
+                if let Some(startup) = self.config.startup_profile.clone() {
+                    self.apply_profile(&startup);
                 }
             }
         }
@@ -287,16 +279,31 @@ impl eframe::App for LaptopTuneApp {
                                     }
                                 }
                             }
-                            let saved_label = self
-                                .config
-                                .last_profile
-                                .as_deref()
-                                .map(|p| format!("Apply '{p}' on startup"))
-                                .unwrap_or_else(|| "Apply last profile on startup".into());
                             if ui
-                                .checkbox(&mut self.config.apply_on_startup, saved_label)
+                                .checkbox(&mut self.config.apply_on_startup, "Apply on startup:")
                                 .changed()
                             {
+                                if self.config.startup_profile.is_none() {
+                                    self.config.startup_profile = Some("balanced".into());
+                                }
+                                self.save_config();
+                            }
+                            let selected = self
+                                .config
+                                .startup_profile
+                                .get_or_insert_with(|| "balanced".into())
+                                .clone();
+                            let mut next_selected = selected.clone();
+                            egui::ComboBox::from_id_salt("startup_profile_combo")
+                                .selected_text(&selected)
+                                .width(105.0)
+                                .show_ui(ui, |ui| {
+                                    for prof in ["eco", "balanced", "performance", "gaming"] {
+                                        ui.selectable_value(&mut next_selected, prof.into(), prof);
+                                    }
+                                });
+                            if next_selected != selected {
+                                self.config.startup_profile = Some(next_selected);
                                 self.save_config();
                             }
                         });
