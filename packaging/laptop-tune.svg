@@ -1,17 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3daee9"/>
-      <stop offset="100%" stop-color="#2ecc71"/>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2ecc71"/>
+      <stop offset="100%" stop-color="#3daee9"/>
     </linearGradient>
   </defs>
 
-  <!-- Full-bleed gauge ring (fills 128x128 viewBox so tray icon is full size) -->
-  <circle cx="64" cy="64" r="54" fill="none" stroke="#474d54" stroke-width="14" stroke-linecap="round"
-          stroke-dasharray="254 340" transform="rotate(135 64 64)"/>
-  <circle cx="64" cy="64" r="54" fill="none" stroke="url(#accent)" stroke-width="14" stroke-linecap="round"
-          stroke-dasharray="190 340" transform="rotate(135 64 64)"/>
+  <!-- Full-bleed circular badge matching standard Linux tray icons (r=62 in 128x128) -->
+  <circle cx="64" cy="64" r="62" fill="url(#ring)"/>
+  <circle cx="64" cy="64" r="48" fill="#232a30"/>
 
-  <!-- Large bold lightning bolt -->
-  <polygon points="72,22 40,68 62,68 54,108 90,58 67,58" fill="#3daee9"/>
+  <!-- High-contrast white lightning bolt -->
+  <polygon points="72,24 40,68 62,68 54,105 90,59 67,59" fill="#ffffff"/>
 </svg>

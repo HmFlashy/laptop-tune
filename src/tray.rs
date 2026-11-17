@@ -42,7 +42,11 @@ impl ksni::Tray for LaptopTuneTray {
     }
 
     fn icon_name(&self) -> String {
-        "laptop-tune".into()
+        String::new()
+    }
+
+    fn icon_pixmap(&self) -> Vec<ksni::Icon> {
+        vec![build_tray_icon(64)]
     }
 
     fn activate(&mut self, _x: i32, _y: i32) {
@@ -118,6 +122,74 @@ pub struct TrayHandle {
     pub rx: Receiver<TrayEvent>,
     tx: Sender<TrayEvent>,
     _handle: Handle<LaptopTuneTray>,
+}
+
+fn build_tray_icon(size: i32) -> ksni::Icon {
+    let mut data = Vec::with_capacity((size * size * 4) as usize);
+    let c = (size as f32 - 1.0) / 2.0;
+    let r_outer = c - 0.5;
+    let r_ring_in = r_outer - 7.0;
+
+    // Lightning bolt polygon in normalized [-1, 1] coordinates
+    let bolt: &[(f32, f32)] = &[
+        (0.12, -0.62),
+        (-0.38, 0.06),
+        (-0.03, 0.06),
+        (-0.16, 0.64),
+        (0.40, -0.08),
+        (0.05, -0.08),
+    ];
+
+    let point_in_poly = |px: f32, py: f32| -> bool {
+        let mut inside = false;
+        let mut j = bolt.len() - 1;
+        for i in 0..bolt.len() {
+            let (xi, yi) = bolt[i];
+            let (xj, yj) = bolt[j];
+            if ((yi > py) != (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+                inside = !inside;
+            }
+            j = i;
+        }
+        inside
+    };
+
+    for y in 0..size {
+        for x in 0..size {
+            let dx = x as f32 - c;
+            let dy = y as f32 - c;
+            let dist = (dx * dx + dy * dy).sqrt();
+
+            if dist > r_outer + 0.8 {
+                data.extend_from_slice(&[0, 0, 0, 0]);
+                continue;
+            }
+
+            let edge_alpha = ((r_outer + 0.8 - dist).clamp(0.0, 1.0) * 255.0) as u8;
+            let nx = dx / r_outer;
+            let ny = dy / r_outer;
+
+            let (r, g, b) = if point_in_poly(nx, ny) {
+                (255u8, 255u8, 255u8)
+            } else if dist >= r_ring_in {
+                let t = ((nx + 1.0) * 0.5).clamp(0.0, 1.0);
+                let rr = (46.0 * (1.0 - t) + 61.0 * t) as u8;
+                let gg = (204.0 * (1.0 - t) + 174.0 * t) as u8;
+                let bb = (113.0 * (1.0 - t) + 233.0 * t) as u8;
+                (rr, gg, bb)
+            } else {
+                (35u8, 42u8, 48u8)
+            };
+
+            data.extend_from_slice(&[edge_alpha, r, g, b]);
+        }
+    }
+
+    ksni::Icon {
+        width: size,
+        height: size,
+        data,
+    }
 }
 
 pub fn spawn_tray() -> Option<TrayHandle> {
