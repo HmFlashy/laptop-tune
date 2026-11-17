@@ -6,7 +6,7 @@ description = "Unified Linux laptop power, hybrid GPU runtime PM, thermal, and b
 license = "MIT"
 
 [dependencies]
-eframe = "0.31"
+eframe = "0.37"
 ksni = { version = "0.3", features = ["blocking"] }
 
 [[bin]]
