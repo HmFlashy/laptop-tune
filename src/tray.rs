@@ -1,8 +1,10 @@
 use std::env;
-use std::path::Path;
+use std::fs;
+use std::os::unix::net::{UnixListener, UnixStream};
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
-use std::time::Duration;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread;
 
 use ksni::blocking::{Handle, TrayMethods};
 
@@ -11,6 +13,7 @@ use crate::snapshot::{guess_active_profile, read_profile_state_in};
 pub enum TrayEvent {
     ToggleWindow,
     ApplyProfile(String),
+    Refresh,
     Quit,
 }
 
@@ -107,15 +110,17 @@ impl ksni::Tray for LaptopTuneTray {
 
 pub struct TrayHandle {
     pub rx: Receiver<TrayEvent>,
+    tx: Sender<TrayEvent>,
     _handle: Handle<LaptopTuneTray>,
 }
 
 pub fn spawn_tray() -> Option<TrayHandle> {
     let (tx, rx) = mpsc::channel();
-    let tray = LaptopTuneTray { tx };
+    let tray = LaptopTuneTray { tx: tx.clone() };
     match tray.disable_dbus_name(true).spawn() {
         Ok(handle) => Some(TrayHandle {
             rx,
+            tx,
             _handle: handle,
         }),
         Err(e) => {
@@ -125,25 +130,53 @@ pub fn spawn_tray() -> Option<TrayHandle> {
     }
 }
 
-fn spawn_gui_window(exe: &std::path::Path) -> Option<Child> {
+fn tray_socket_path() -> Option<PathBuf> {
+    if let Ok(runtime) = env::var("XDG_RUNTIME_DIR") {
+        if !runtime.is_empty() {
+            return Some(PathBuf::from(runtime).join("laptop-tune-tray.sock"));
+        }
+    }
+    None
+}
+
+pub fn notify_tray_refresh() {
+    if let Some(sock) = tray_socket_path() {
+        let _ = UnixStream::connect(sock);
+    }
+}
+
+fn spawn_socket_listener(tx: Sender<TrayEvent>) -> Option<PathBuf> {
+    let sock_path = tray_socket_path()?;
+    let _ = fs::remove_file(&sock_path);
+    let listener = UnixListener::bind(&sock_path).ok()?;
+    thread::spawn(move || {
+        for stream in listener.incoming() {
+            if stream.is_ok() && tx.send(TrayEvent::Refresh).is_err() {
+                break;
+            }
+        }
+    });
+    Some(sock_path)
+}
+
+fn spawn_gui_window(exe: &Path) -> Option<Child> {
     Command::new(exe).arg("gui").spawn().ok()
 }
 
-/// Runs a lightweight system-tray host that toggles the native GUI window on click.
-/// Works reliably on both Wayland and X11 where window hide/unminimize is restricted.
+/// Runs a lightweight event-driven system-tray host (zero polling).
 pub fn run_tray_host() {
     let Some(tray) = spawn_tray() else {
         crate::gui::run_gui();
         return;
     };
 
+    let sock_path = spawn_socket_listener(tray.tx.clone());
     let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
     let mut child: Option<Child> = spawn_gui_window(&exe);
-    let mut last_active = guess_active_profile(&read_profile_state_in(Path::new("/sys")));
 
-    loop {
-        match tray.rx.recv_timeout(Duration::from_secs(2)) {
-            Ok(TrayEvent::ToggleWindow) => {
+    while let Ok(ev) = tray.rx.recv() {
+        match ev {
+            TrayEvent::ToggleWindow => {
                 let is_running = child
                     .as_mut()
                     .and_then(|c| c.try_wait().ok().flatten())
@@ -158,29 +191,28 @@ pub fn run_tray_host() {
                     child = spawn_gui_window(&exe);
                 }
             }
-            Ok(TrayEvent::ApplyProfile(name)) => {
+            TrayEvent::ApplyProfile(name) => {
                 let _ = Command::new("pkexec")
                     .arg(&exe)
                     .arg("profile")
                     .arg(&name)
                     .status();
                 tray._handle.update(|_| {});
-                last_active = guess_active_profile(&read_profile_state_in(Path::new("/sys")));
             }
-            Ok(TrayEvent::Quit) | Err(RecvTimeoutError::Disconnected) => {
+            TrayEvent::Refresh => {
+                tray._handle.update(|_| {});
+            }
+            TrayEvent::Quit => {
                 if let Some(mut c) = child.take() {
                     let _ = c.kill();
                     let _ = c.wait();
                 }
                 break;
             }
-            Err(RecvTimeoutError::Timeout) => {
-                let current = guess_active_profile(&read_profile_state_in(Path::new("/sys")));
-                if current != last_active {
-                    last_active = current;
-                    tray._handle.update(|_| {});
-                }
-            }
         }
+    }
+
+    if let Some(path) = sock_path {
+        let _ = fs::remove_file(path);
     }
 }

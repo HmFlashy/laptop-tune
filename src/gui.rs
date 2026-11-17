@@ -10,6 +10,7 @@ use crate::config::{
 };
 use crate::gpu::vendor_name;
 use crate::snapshot::{collect_snapshot, guess_active_profile, Snapshot};
+use crate::tray::notify_tray_refresh;
 
 const ACCENT_CYAN: egui::Color32 = egui::Color32::from_rgb(56, 189, 248);
 const ACCENT_GREEN: egui::Color32 = egui::Color32::from_rgb(34, 197, 94);
@@ -70,6 +71,7 @@ impl LaptopTuneApp {
             Ok(out) if out.status.success() => {
                 self.status_msg = Some((success_msg, false));
                 self.snapshot = collect_snapshot();
+                notify_tray_refresh();
                 true
             }
             Ok(out) => {
