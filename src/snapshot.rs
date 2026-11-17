@@ -9,6 +9,14 @@ pub struct ProfileState {
     pub platform: String,
     pub cpu_epp: String,
     pub turbo: String,
+    pub aspm: String,
+}
+
+pub fn parse_active_bracketed(raw: &str) -> String {
+    raw.split_whitespace()
+        .find(|tok| tok.starts_with('[') && tok.ends_with(']'))
+        .map(|tok| tok[1..tok.len() - 1].to_string())
+        .unwrap_or_else(|| raw.trim().to_string())
 }
 
 pub fn guess_active_profile(p: &ProfileState) -> &'static str {
@@ -16,8 +24,12 @@ pub fn guess_active_profile(p: &ProfileState) -> &'static str {
         "eco"
     } else if p.platform == "balanced" || p.cpu_epp == "balance_performance" {
         "balanced"
-    } else if p.platform == "performance" {
-        "performance"
+    } else if p.platform == "performance" || p.cpu_epp == "performance" {
+        if p.aspm == "performance" {
+            "gaming"
+        } else {
+            "performance"
+        }
     } else {
         ""
     }
@@ -56,10 +68,15 @@ pub fn read_profile_state_in(sys_root: &Path) -> ProfileState {
         "unavailable".into()
     };
 
+    let aspm = read_trimmed(&sys_root.join("module/pcie_aspm/parameters/policy"))
+        .map(|raw| parse_active_bracketed(&raw))
+        .unwrap_or_else(|| "unavailable".into());
+
     ProfileState {
         platform,
         cpu_epp,
         turbo,
+        aspm,
     }
 }
 
@@ -123,11 +140,31 @@ mod tests {
             "power\n",
         );
         write_mock(&sys.join("devices/system/cpu/intel_pstate/no_turbo"), "1\n");
+        write_mock(
+            &sys.join("module/pcie_aspm/parameters/policy"),
+            "default performance [powersupersave]\n",
+        );
 
         let state = read_profile_state_in(sys);
         assert_eq!(state.platform, "quiet");
         assert_eq!(state.cpu_epp, "power");
         assert_eq!(state.turbo, "off");
+        assert_eq!(state.aspm, "powersupersave");
+        assert_eq!(guess_active_profile(&state), "eco");
+
+        let gaming = ProfileState {
+            platform: "performance".into(),
+            cpu_epp: "performance".into(),
+            turbo: "on".into(),
+            aspm: "performance".into(),
+        };
+        assert_eq!(guess_active_profile(&gaming), "gaming");
+
+        let perf = ProfileState {
+            aspm: "default".into(),
+            ..gaming
+        };
+        assert_eq!(guess_active_profile(&perf), "performance");
 
         let therm = sys.join("class/thermal");
         write_mock(&therm.join("thermal_zone0/type"), "TCPU\n");

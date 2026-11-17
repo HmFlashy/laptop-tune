@@ -54,12 +54,12 @@ impl LaptopTuneApp {
         visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(51, 65, 85);
         visuals.widgets.active.bg_fill = egui::Color32::from_rgb(71, 85, 105);
         visuals.selection.bg_fill = ACCENT_CYAN.linear_multiply(0.35);
-        ctx.set_visuals(visuals);
+        ctx.set_visuals_of(egui::Theme::Dark, visuals);
 
-        let mut style = (*ctx.style()).clone();
+        let mut style = (*ctx.style_of(egui::Theme::Dark)).clone();
         style.spacing.item_spacing = egui::vec2(8.0, 8.0);
         style.spacing.button_padding = egui::vec2(12.0, 6.0);
-        ctx.set_style(style);
+        ctx.set_style_of(egui::Theme::Dark, style);
     }
 
     fn run_privileged(&mut self, args: &[&str], success_msg: String) -> bool {
@@ -145,9 +145,10 @@ fn pill(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
 }
 
 impl eframe::App for LaptopTuneApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = ui.ctx().clone();
         if !self.styled {
-            Self::apply_theme(ctx);
+            Self::apply_theme(&ctx);
             self.styled = true;
         }
         if !self.startup_applied {
@@ -171,7 +172,7 @@ impl eframe::App for LaptopTuneApp {
                     .fill(egui::Color32::from_rgb(15, 23, 42))
                     .inner_margin(14.0),
             )
-            .show(ctx, |ui| {
+            .show_inside(ui, |ui| {
                 // Header
                 ui.horizontal(|ui| {
                     ui.label(
