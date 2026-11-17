@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="1.5.3"
+VERSION="2.0.0"
 if command -v dpkg >/dev/null 2>&1; then
   ARCH="$(dpkg --print-architecture)"
 else
@@ -25,6 +25,7 @@ install -Dm755 target/release/laptop-tune "${BUILD_DIR}/usr/bin/laptop-tune"
 install -Dm644 packaging/laptop-tune.desktop "${BUILD_DIR}/usr/share/applications/laptop-tune.desktop"
 install -Dm644 packaging/laptop-tune.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/laptop-tune.svg"
 install -Dm644 packaging/org.laptop-tune.policy "${BUILD_DIR}/usr/share/polkit-1/actions/org.laptop-tune.policy"
+install -Dm644 packaging/laptop-tune.service "${BUILD_DIR}/lib/systemd/system/laptop-tune.service"
 install -Dm644 README.md "${BUILD_DIR}/usr/share/doc/laptop-tune/README.md"
 install -Dm644 LICENSE "${BUILD_DIR}/usr/share/doc/laptop-tune/copyright"
 

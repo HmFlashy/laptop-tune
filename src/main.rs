@@ -1,5 +1,6 @@
 mod battery;
 mod config;
+mod daemon;
 mod gpu;
 mod gui;
 mod profile;
@@ -110,6 +111,8 @@ fn print_help() {
     );
     println!("  profile <name> [--dry-run]  Apply profile (eco | balanced | performance | gaming)");
     println!("  reset [--dry-run]           Restore safe default (balanced) kernel settings");
+    println!("  thresholds <start> <stop>   Set battery charge thresholds (e.g. 50 80 or 0 100)");
+    println!("  daemon [--once]             Run event-driven AC/BAT + GPU + battery daemon");
     println!("  generate-rules              Detect hardware and print udev + TLP configs");
     println!("  help                        Show this help message");
 }
@@ -148,6 +151,30 @@ fn main() {
         Some("reset") => {
             let dry_run = args.iter().any(|a| a == "--dry-run");
             cmd_reset(dry_run);
+        }
+        Some("thresholds") => {
+            let (Some(s), Some(e)) = (
+                args.get(2).and_then(|v| v.parse::<u8>().ok()),
+                args.get(3).and_then(|v| v.parse::<u8>().ok()),
+            ) else {
+                eprintln!("Usage: laptop-tune thresholds <start> <stop> [--dry-run]");
+                process::exit(1);
+            };
+            let dry_run = args.iter().any(|a| a == "--dry-run");
+            if let Err(err) = daemon::apply_battery_thresholds_in(
+                Path::new("/sys/class/power_supply"),
+                s,
+                e,
+                dry_run,
+            ) {
+                eprintln!("{err}");
+                process::exit(1);
+            }
+            println!("Battery thresholds set to {s}% / {e}%.");
+        }
+        Some("daemon") => {
+            let once = args.iter().any(|a| a == "--once");
+            daemon::run_daemon(once);
         }
         Some("generate-rules") => cmd_generate_rules(),
         Some("help") | Some("--help") | Some("-h") => print_help(),

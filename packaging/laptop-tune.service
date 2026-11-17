@@ -1,0 +1,13 @@
+[Unit]
+Description=Laptop Tune Power & GPU Daemon
+After=multi-user.target
+Conflicts=tlp.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/laptop-tune daemon
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

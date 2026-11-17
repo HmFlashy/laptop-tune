@@ -8,6 +8,57 @@ pub struct AppConfig {
     pub apply_on_startup: bool,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct SystemConfig {
+    pub ac_profile: String,
+    pub bat_profile: String,
+    pub charge_start: u8,
+    pub charge_stop: u8,
+}
+
+impl Default for SystemConfig {
+    fn default() -> Self {
+        Self {
+            ac_profile: "performance".into(),
+            bat_profile: "eco".into(),
+            charge_start: 50,
+            charge_stop: 80,
+        }
+    }
+}
+
+pub fn load_system_config_from(path: &Path) -> SystemConfig {
+    let mut cfg = SystemConfig::default();
+    let Ok(content) = fs::read_to_string(path) else {
+        return cfg;
+    };
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if let Some((k, v)) = line.split_once('=') {
+            let v = v.trim();
+            match k.trim() {
+                "ac_profile" if !v.is_empty() => cfg.ac_profile = v.to_string(),
+                "bat_profile" if !v.is_empty() => cfg.bat_profile = v.to_string(),
+                "charge_start" => {
+                    if let Ok(n) = v.parse::<u8>() {
+                        cfg.charge_start = n.min(99);
+                    }
+                }
+                "charge_stop" => {
+                    if let Ok(n) = v.parse::<u8>() {
+                        cfg.charge_stop = n.clamp(1, 100);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    cfg
+}
+
 fn config_dir() -> Option<PathBuf> {
     if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
         if !xdg.is_empty() {
@@ -111,5 +162,22 @@ mod tests {
 
         set_autostart_at(&desktop, exe, false).unwrap();
         assert!(!desktop.exists());
+    }
+
+    #[test]
+    fn test_load_system_config() {
+        let tmp = TempDir::new("sysconf");
+        let path = tmp.0.join("config.conf");
+        fs::write(
+            &path,
+            "# comment\nac_profile=gaming\nbat_profile=eco\ncharge_start=40\ncharge_stop=85\n",
+        )
+        .unwrap();
+
+        let cfg = load_system_config_from(&path);
+        assert_eq!(cfg.ac_profile, "gaming");
+        assert_eq!(cfg.bat_profile, "eco");
+        assert_eq!(cfg.charge_start, 40);
+        assert_eq!(cfg.charge_stop, 85);
     }
 }
