@@ -203,14 +203,6 @@ pub fn run_tray_host() {
     let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
     let mut child: Option<Child> = spawn_gui_window(&exe);
     let mut last_ac = is_on_ac_in(Path::new("/sys/class/power_supply"));
-    let mut locked_profile = {
-        let p = guess_active_profile(&read_profile_state_in(Path::new("/sys")));
-        if p.is_empty() {
-            "balanced".to_string()
-        } else {
-            p.to_string()
-        }
-    };
 
     while let Ok(ev) = tray.rx.recv() {
         match ev {
@@ -235,48 +227,31 @@ pub fn run_tray_host() {
                     .arg("profile")
                     .arg(&name)
                     .status();
-                locked_profile = name;
                 tray._handle.update(|_| {});
             }
             TrayEvent::PowerChanged => {
                 let on_ac = is_on_ac_in(Path::new("/sys/class/power_supply"));
                 if on_ac != last_ac {
                     last_ac = on_ac;
-                    let has_tlp = Path::new("/etc/tlp.conf").exists();
-                    if has_tlp {
-                        let _ = Command::new("udevadm")
-                            .args(["settle", "--timeout=2"])
-                            .status();
-                    }
                     let cfg = default_config_path()
                         .map(|p| load_config_from(&p))
                         .unwrap_or_default();
-                    let target = if cfg.auto_switch_ac_bat {
-                        if on_ac {
-                            cfg.ac_profile
+                    if cfg.auto_switch_ac_bat {
+                        let target = if on_ac {
+                            &cfg.ac_profile
                         } else {
-                            cfg.bat_profile
-                        }
-                    } else if has_tlp {
-                        locked_profile.clone()
-                    } else {
-                        tray._handle.update(|_| {});
-                        continue;
-                    };
-                    let _ = Command::new("pkexec")
-                        .arg(&exe)
-                        .arg("profile")
-                        .arg(&target)
-                        .status();
-                    locked_profile = target;
+                            &cfg.bat_profile
+                        };
+                        let _ = Command::new("pkexec")
+                            .arg(&exe)
+                            .arg("profile")
+                            .arg(target)
+                            .status();
+                    }
                     tray._handle.update(|_| {});
                 }
             }
             TrayEvent::Refresh => {
-                let p = guess_active_profile(&read_profile_state_in(Path::new("/sys")));
-                if !p.is_empty() {
-                    locked_profile = p.to_string();
-                }
                 tray._handle.update(|_| {});
             }
             TrayEvent::Quit => {
