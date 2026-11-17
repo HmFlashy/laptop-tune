@@ -159,20 +159,25 @@ fn spawn_socket_listener(tx: Sender<TrayEvent>) -> Option<PathBuf> {
     Some(sock_path)
 }
 
-fn spawn_gui_window(exe: &Path) -> Option<Child> {
-    Command::new(exe).arg("gui").spawn().ok()
+fn spawn_gui_window(exe: &Path, allow_startup: bool) -> Option<Child> {
+    let mut cmd = Command::new(exe);
+    cmd.arg("gui");
+    if !allow_startup {
+        cmd.arg("--no-startup");
+    }
+    cmd.spawn().ok()
 }
 
 /// Runs a lightweight event-driven system-tray host (zero polling).
 pub fn run_tray_host() {
     let Some(tray) = spawn_tray() else {
-        crate::gui::run_gui();
+        crate::gui::run_gui(true);
         return;
     };
 
     let sock_path = spawn_socket_listener(tray.tx.clone());
     let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
-    let mut child: Option<Child> = spawn_gui_window(&exe);
+    let mut child: Option<Child> = spawn_gui_window(&exe, true);
 
     while let Ok(ev) = tray.rx.recv() {
         match ev {
@@ -188,7 +193,7 @@ pub fn run_tray_host() {
                         let _ = c.wait();
                     }
                 } else {
-                    child = spawn_gui_window(&exe);
+                    child = spawn_gui_window(&exe, false);
                 }
             }
             TrayEvent::ApplyProfile(name) => {
