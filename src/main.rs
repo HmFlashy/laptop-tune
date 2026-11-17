@@ -137,8 +137,7 @@ fn main() {
             if args.iter().any(|a| a == "--tray") {
                 tray::run_tray_host();
             } else {
-                let allow_startup = !args.iter().any(|a| a == "--no-startup");
-                gui::run_gui(allow_startup);
+                gui::run_gui();
             }
         }
         Some("profile") => {

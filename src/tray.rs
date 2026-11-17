@@ -163,13 +163,8 @@ fn spawn_socket_listener(tx: Sender<TrayEvent>) -> Option<PathBuf> {
     Some(sock_path)
 }
 
-fn spawn_gui_window(exe: &Path, allow_startup: bool) -> Option<Child> {
-    let mut cmd = Command::new(exe);
-    cmd.arg("gui");
-    if !allow_startup {
-        cmd.arg("--no-startup");
-    }
-    cmd.spawn().ok()
+fn spawn_gui_window(exe: &Path) -> Option<Child> {
+    Command::new(exe).arg("gui").spawn().ok()
 }
 
 fn spawn_power_watcher(tx: Sender<TrayEvent>) {
@@ -199,14 +194,14 @@ fn spawn_power_watcher(tx: Sender<TrayEvent>) {
 /// Runs a lightweight event-driven system-tray host (zero polling).
 pub fn run_tray_host() {
     let Some(tray) = spawn_tray() else {
-        crate::gui::run_gui(true);
+        crate::gui::run_gui();
         return;
     };
 
     let sock_path = spawn_socket_listener(tray.tx.clone());
     spawn_power_watcher(tray.tx.clone());
     let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
-    let mut child: Option<Child> = spawn_gui_window(&exe, true);
+    let mut child: Option<Child> = spawn_gui_window(&exe);
     let mut last_ac = is_on_ac_in(Path::new("/sys/class/power_supply"));
 
     while let Ok(ev) = tray.rx.recv() {
@@ -223,7 +218,7 @@ pub fn run_tray_host() {
                         let _ = c.wait();
                     }
                 } else {
-                    child = spawn_gui_window(&exe, false);
+                    child = spawn_gui_window(&exe);
                 }
             }
             TrayEvent::ApplyProfile(name) => {

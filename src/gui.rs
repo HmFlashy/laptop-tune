@@ -27,11 +27,10 @@ struct LaptopTuneApp {
     styled: bool,
     config: AppConfig,
     autostart_enabled: bool,
-    startup_applied: bool,
 }
 
 impl LaptopTuneApp {
-    fn new(allow_startup_apply: bool) -> Self {
+    fn new() -> Self {
         let config = default_config_path()
             .map(|p| load_config_from(&p))
             .unwrap_or_default();
@@ -43,7 +42,6 @@ impl LaptopTuneApp {
             styled: false,
             config,
             autostart_enabled,
-            startup_applied: !allow_startup_apply,
         }
     }
 
@@ -144,16 +142,6 @@ impl eframe::App for LaptopTuneApp {
         if !self.styled {
             Self::apply_theme(&ctx);
             self.styled = true;
-        }
-        if !self.startup_applied {
-            self.startup_applied = true;
-            if self.config.apply_on_startup {
-                if let Some(startup) = self.config.startup_profile.clone() {
-                    if guess_active_profile(&self.snapshot.profile) != startup {
-                        self.apply_profile(&startup);
-                    }
-                }
-            }
         }
 
         if self.last_refresh.elapsed() >= Duration::from_millis(1500) {
@@ -467,7 +455,7 @@ impl eframe::App for LaptopTuneApp {
     }
 }
 
-pub fn run_gui(allow_startup_apply: bool) {
+pub fn run_gui() {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([520.0, 620.0])
@@ -478,7 +466,7 @@ pub fn run_gui(allow_startup_apply: bool) {
     if let Err(e) = eframe::run_native(
         "laptop-tune",
         options,
-        Box::new(move |_cc| Ok(Box::new(LaptopTuneApp::new(allow_startup_apply)))),
+        Box::new(|_cc| Ok(Box::new(LaptopTuneApp::new()))),
     ) {
         eprintln!("Failed to launch GUI: {e}");
         std::process::exit(1);
