@@ -4,6 +4,12 @@
 
 Rust-CLI, native Desktop-GUI und ereignisgesteuerter Daemon zur Analyse und Optimierung von Linux-Laptops: Hybrid-GPU-Energiemanagement (Intel / AMD / NVIDIA), CPU-Energieprofile, PCIe ASPM, Standby-Modi, Temperaturen und Akku-Ladeschwellen.
 
+<p align="center">
+  <img src="assets/gui.png" alt="laptop-tune GUI" width="440" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/tray-menu.png" alt="laptop-tune Tray-Menü" width="180" />
+</p>
+
 ## Funktionen
 
 - **`laptop-tune status`**: Echtzeit-Anzeige von Akkuverbrauch (`W`), Ladeschwellen, PCI-GPUs (`D3 suspended`), `mem_sleep`, aktivem Profil und Temperaturen.

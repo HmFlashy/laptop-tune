@@ -4,6 +4,12 @@
 
 Rust CLI, native desktop GUI, and event-driven daemon for auditing and tuning Linux laptops: hybrid GPU runtime power management (Intel / AMD / NVIDIA), CPU power profiles, PCIe ASPM, sleep states, thermals, and battery charge thresholds.
 
+<p align="center">
+  <img src="docs/assets/gui.png" alt="laptop-tune desktop GUI" width="440" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="docs/assets/tray-menu.png" alt="laptop-tune system tray menu" width="180" />
+</p>
+
 ## Features
 
 - **`laptop-tune status`**: Live readout of battery draw (`W`) and charge thresholds, PCI GPUs (`driver`, `runtime_status`, D3 `suspended` check), `mem_sleep`, active CPU profile (`platform_profile`, `EPP`, `turbo`), and thermal zones.

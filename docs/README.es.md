@@ -4,6 +4,12 @@
 
 CLI, interfaz gráfica nativa y demonio basado en eventos en Rust para auditar y optimizar portátiles en Linux: gestión de energía de GPU híbridas (Intel / AMD / NVIDIA), perfiles de CPU, PCIe ASPM, estados de suspensión, temperaturas y umbrales de carga de batería.
 
+<p align="center">
+  <img src="assets/gui.png" alt="laptop-tune GUI" width="440" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/tray-menu.png" alt="laptop-tune tray menu" width="180" />
+</p>
+
 ## Características
 
 - **`laptop-tune status`**: Lectura en vivo del consumo de batería (`W`), umbrales de carga, GPUs PCI (`D3 suspended`), `mem_sleep`, perfil activo y zonas térmicas.
