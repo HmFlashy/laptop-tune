@@ -10,7 +10,6 @@ use crate::config::{
 };
 use crate::gpu::vendor_name;
 use crate::snapshot::{collect_snapshot, Snapshot};
-use crate::tray::{spawn_tray, TrayEvent, TrayHandle};
 
 const ACCENT_CYAN: egui::Color32 = egui::Color32::from_rgb(56, 189, 248);
 const ACCENT_GREEN: egui::Color32 = egui::Color32::from_rgb(34, 197, 94);
@@ -24,8 +23,6 @@ struct LaptopTuneApp {
     snapshot: Snapshot,
     last_refresh: Instant,
     status_msg: Option<(String, bool)>,
-    window_minimized: bool,
-    tray: Option<TrayHandle>,
     styled: bool,
     config: AppConfig,
     autostart_enabled: bool,
@@ -33,8 +30,7 @@ struct LaptopTuneApp {
 }
 
 impl LaptopTuneApp {
-    fn new(_minimize_to_tray: bool) -> Self {
-        let tray = spawn_tray();
+    fn new() -> Self {
         let config = default_config_path()
             .map(|p| load_config_from(&p))
             .unwrap_or_default();
@@ -43,8 +39,6 @@ impl LaptopTuneApp {
             snapshot: collect_snapshot(),
             last_refresh: Instant::now(),
             status_msg: None,
-            window_minimized: false,
-            tray,
             styled: false,
             config,
             autostart_enabled,
@@ -117,32 +111,6 @@ impl LaptopTuneApp {
         }
     }
 
-    fn handle_tray_events(&mut self, ctx: &egui::Context) {
-        let mut events = Vec::new();
-        if let Some(tray) = &self.tray {
-            while let Ok(ev) = tray.rx.try_recv() {
-                events.push(ev);
-            }
-        }
-        for ev in events {
-            match ev {
-                TrayEvent::ToggleWindow => {
-                    self.window_minimized = !self.window_minimized;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(self.window_minimized));
-                    if !self.window_minimized {
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
-                    }
-                }
-                TrayEvent::ApplyProfile(name) => {
-                    self.apply_profile(&name);
-                }
-                TrayEvent::Quit => {
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                }
-            }
-        }
-    }
-
     fn active_profile_guess(&self) -> &'static str {
         let p = &self.snapshot.profile;
         if p.cpu_epp == "power" || p.platform == "quiet" || p.platform == "cool" {
@@ -200,8 +168,6 @@ impl eframe::App for LaptopTuneApp {
             }
         }
 
-        self.handle_tray_events(ctx);
-
         if self.last_refresh.elapsed() >= Duration::from_millis(1500) {
             self.snapshot = collect_snapshot();
             self.last_refresh = Instant::now();
@@ -225,12 +191,8 @@ impl eframe::App for LaptopTuneApp {
                     );
                     pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), ACCENT_CYAN);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("Quit").clicked() {
+                        if ui.button("Close").clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
-                        if ui.button("Minimize").clicked() {
-                            self.window_minimized = true;
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
                         }
                         if ui.button("Refresh").clicked() {
                             self.snapshot = collect_snapshot();
@@ -489,7 +451,7 @@ impl eframe::App for LaptopTuneApp {
     }
 }
 
-pub fn run_gui(minimize_to_tray: bool) {
+pub fn run_gui() {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([520.0, 620.0])
@@ -500,7 +462,7 @@ pub fn run_gui(minimize_to_tray: bool) {
     if let Err(e) = eframe::run_native(
         "laptop-tune",
         options,
-        Box::new(move |_cc| Ok(Box::new(LaptopTuneApp::new(minimize_to_tray)))),
+        Box::new(|_cc| Ok(Box::new(LaptopTuneApp::new()))),
     ) {
         eprintln!("Failed to launch GUI: {e}");
         std::process::exit(1);

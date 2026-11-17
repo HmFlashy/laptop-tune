@@ -1,3 +1,5 @@
+use std::env;
+use std::process::{Child, Command};
 use std::sync::mpsc::{self, Receiver, Sender};
 
 use ksni::blocking::{Handle, TrayMethods};
@@ -22,7 +24,7 @@ impl ksni::Tray for LaptopTuneTray {
     }
 
     fn icon_name(&self) -> String {
-        "battery".into()
+        "laptop-tune".into()
     }
 
     fn activate(&mut self, _x: i32, _y: i32) {
@@ -102,6 +104,56 @@ pub fn spawn_tray() -> Option<TrayHandle> {
         Err(e) => {
             eprintln!("Tray disabled ({e})");
             None
+        }
+    }
+}
+
+fn spawn_gui_window(exe: &std::path::Path) -> Option<Child> {
+    Command::new(exe).arg("gui").spawn().ok()
+}
+
+/// Runs a lightweight system-tray host that toggles the native GUI window on click.
+/// Works reliably on both Wayland and X11 where window hide/unminimize is restricted.
+pub fn run_tray_host() {
+    let Some(tray) = spawn_tray() else {
+        crate::gui::run_gui();
+        return;
+    };
+
+    let exe = env::current_exe().unwrap_or_else(|_| "laptop-tune".into());
+    let mut child: Option<Child> = spawn_gui_window(&exe);
+
+    while let Ok(ev) = tray.rx.recv() {
+        match ev {
+            TrayEvent::ToggleWindow => {
+                let is_running = child
+                    .as_mut()
+                    .and_then(|c| c.try_wait().ok().flatten())
+                    .is_none()
+                    && child.is_some();
+                if is_running {
+                    if let Some(mut c) = child.take() {
+                        let _ = c.kill();
+                        let _ = c.wait();
+                    }
+                } else {
+                    child = spawn_gui_window(&exe);
+                }
+            }
+            TrayEvent::ApplyProfile(name) => {
+                let _ = Command::new("pkexec")
+                    .arg(&exe)
+                    .arg("profile")
+                    .arg(&name)
+                    .status();
+            }
+            TrayEvent::Quit => {
+                if let Some(mut c) = child.take() {
+                    let _ = c.kill();
+                    let _ = c.wait();
+                }
+                break;
+            }
         }
     }
 }

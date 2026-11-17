@@ -131,8 +131,11 @@ fn main() {
     match args.get(1).map(String::as_str) {
         Some("status") | None => cmd_status(),
         Some("gui") => {
-            let tray = args.iter().any(|a| a == "--tray");
-            gui::run_gui(tray);
+            if args.iter().any(|a| a == "--tray") {
+                tray::run_tray_host();
+            } else {
+                gui::run_gui();
+            }
         }
         Some("profile") => {
             let Some(name) = args.get(2) else {
