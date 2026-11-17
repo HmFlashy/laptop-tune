@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.0"
+VERSION="1.0.0"
 ARCH="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
 PKG_NAME="laptop-tune_${VERSION}_${ARCH}"
 BUILD_DIR="target/deb/${PKG_NAME}"
