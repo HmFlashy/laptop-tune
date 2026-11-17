@@ -20,24 +20,20 @@ struct LaptopTuneApp {
     snapshot: Snapshot,
     last_refresh: Instant,
     status_msg: Option<(String, bool)>,
-    minimize_to_tray: bool,
-    window_visible: bool,
+    window_minimized: bool,
     tray: Option<TrayHandle>,
-    force_quit: bool,
     styled: bool,
 }
 
 impl LaptopTuneApp {
-    fn new(minimize_to_tray: bool) -> Self {
+    fn new(_minimize_to_tray: bool) -> Self {
         let tray = spawn_tray();
         Self {
             snapshot: collect_snapshot(),
             last_refresh: Instant::now(),
             status_msg: None,
-            minimize_to_tray: minimize_to_tray && tray.is_some(),
-            window_visible: true,
+            window_minimized: false,
             tray,
-            force_quit: false,
             styled: false,
         }
     }
@@ -100,9 +96,9 @@ impl LaptopTuneApp {
         for ev in events {
             match ev {
                 TrayEvent::ToggleWindow => {
-                    self.window_visible = !self.window_visible;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(self.window_visible));
-                    if self.window_visible {
+                    self.window_minimized = !self.window_minimized;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(self.window_minimized));
+                    if !self.window_minimized {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                     }
                 }
@@ -110,7 +106,6 @@ impl LaptopTuneApp {
                     self.apply_profile(&name);
                 }
                 TrayEvent::Quit => {
-                    self.force_quit = true;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
             }
@@ -168,15 +163,6 @@ impl eframe::App for LaptopTuneApp {
 
         self.handle_tray_events(ctx);
 
-        if ctx.input(|i| i.viewport().close_requested())
-            && self.minimize_to_tray
-            && !self.force_quit
-        {
-            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-            self.window_visible = false;
-            ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
-        }
-
         if self.last_refresh.elapsed() >= Duration::from_millis(1500) {
             self.snapshot = collect_snapshot();
             self.last_refresh = Instant::now();
@@ -201,15 +187,15 @@ impl eframe::App for LaptopTuneApp {
                     pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), ACCENT_CYAN);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("Quit").clicked() {
-                            self.force_quit = true;
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+                        if ui.button("Minimize").clicked() {
+                            self.window_minimized = true;
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
                         }
                         if ui.button("Refresh").clicked() {
                             self.snapshot = collect_snapshot();
                             self.last_refresh = Instant::now();
-                        }
-                        if self.tray.is_some() {
-                            ui.checkbox(&mut self.minimize_to_tray, "Minimize to tray");
                         }
                     });
                 });
