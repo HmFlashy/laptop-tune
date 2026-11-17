@@ -265,21 +265,6 @@ impl eframe::App for LaptopTuneApp {
                         });
                         ui.add_enabled_ui(self.config.auto_switch_ac_bat, |ui| {
                             ui.horizontal(|ui| {
-                                ui.label(egui::RichText::new("On AC:").color(muted));
-                                let mut ac = self.config.ac_profile.clone();
-                                egui::ComboBox::from_id_salt("ac_profile_combo")
-                                    .selected_text(&ac)
-                                    .width(105.0)
-                                    .show_ui(ui, |ui| {
-                                        for prof in ["eco", "balanced", "performance", "max"] {
-                                            ui.selectable_value(&mut ac, prof.into(), prof);
-                                        }
-                                    });
-                                if ac != self.config.ac_profile {
-                                    self.config.ac_profile = ac;
-                                    self.save_config();
-                                }
-                                ui.add_space(8.0);
                                 ui.label(egui::RichText::new("On Battery:").color(muted));
                                 let mut bat = self.config.bat_profile.clone();
                                 egui::ComboBox::from_id_salt("bat_profile_combo")
@@ -292,6 +277,21 @@ impl eframe::App for LaptopTuneApp {
                                     });
                                 if bat != self.config.bat_profile {
                                     self.config.bat_profile = bat;
+                                    self.save_config();
+                                }
+                                ui.add_space(8.0);
+                                ui.label(egui::RichText::new("On AC:").color(muted));
+                                let mut ac = self.config.ac_profile.clone();
+                                egui::ComboBox::from_id_salt("ac_profile_combo")
+                                    .selected_text(&ac)
+                                    .width(105.0)
+                                    .show_ui(ui, |ui| {
+                                        for prof in ["eco", "balanced", "performance", "max"] {
+                                            ui.selectable_value(&mut ac, prof.into(), prof);
+                                        }
+                                    });
+                                if ac != self.config.ac_profile {
+                                    self.config.ac_profile = ac;
                                     self.save_config();
                                 }
                             });
