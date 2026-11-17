@@ -36,9 +36,9 @@ Rust-CLI, native Desktop-GUI und ereignisgesteuerter Daemon zur Analyse und Opti
 | Modus | ACPI `platform_profile` | CPU (`EPP` / `governor`) | Turbo Boost | PCIe ASPM | Ideal für |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`eco`** | `quiet` | `power` | Aus | `powersupersave` | Maximale Akkulaufzeit & leise Lüfter |
-| **`balanced`** / **`reset`** | `balanced` | `balance_performance` | Ein | `default` | Täglicher Gebrauch & Standard |
-| **`performance`** | `performance` | `performance` | Ein | `default` | Kompilierung, Rendering & hohe CPU-Last |
-| **`max`** | `performance` | `performance` | Ein | `performance` | Keine PCIe-Schlaflatenz (Gaming, CUDA/KI, Audio) |
+| **`balanced`** / **`reset`** | `balanced` | `balance_power` | Ein | `default` | Kühler & leiser Alltagsbetrieb |
+| **`performance`** | `balanced` | `balance_performance` | Ein | `default` | Automatischer Turbo bei Bedarf, lautlos im Leerlauf |
+| **`max`** | `performance` | `performance` | Ein | `performance` | 100% Takt, maximale Kühlung & keine PCIe-Schlaflatenz |
 
 ## Installation
 

@@ -176,13 +176,24 @@ mod tests {
             &sys.join("firmware/acpi/platform_profile_choices"),
             "quiet balanced performance\n",
         );
-        write_mock(&sys.join("firmware/acpi/platform_profile"), "balanced\n");
+        write_mock(&sys.join("firmware/acpi/platform_profile"), "quiet\n");
+        write_mock(
+            &sys.join("devices/system/cpu/cpu0/cpufreq/energy_performance_preference"),
+            "power\n",
+        );
 
         let cfg = SystemConfig::default();
         assert!(apply_system_state_in(sys, &cfg, false));
         assert_eq!(
             read_trimmed(&sys.join("firmware/acpi/platform_profile")).as_deref(),
-            Some("performance")
+            Some("balanced")
+        );
+        assert_eq!(
+            read_trimmed(
+                &sys.join("devices/system/cpu/cpu0/cpufreq/energy_performance_preference")
+            )
+            .as_deref(),
+            Some("balance_performance")
         );
         assert_eq!(
             read_trimmed(&sys.join("bus/pci/devices/0000:01:00.0/power/control")).as_deref(),

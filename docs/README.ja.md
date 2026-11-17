@@ -36,9 +36,9 @@ Linux ノート PC 向けの Rust 製 CLI・ネイティブ GUI・イベント�
 | モード | ACPI `platform_profile` | CPU (`EPP` / `governor`) | ターボブースト | PCIe ASPM | 用途 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`eco`** | `quiet` | `power` | OFF | `powersupersave` | バッテリー持続時間重視・静音 |
-| **`balanced`** / **`reset`** | `balanced` | `balance_performance` | ON | `default` | 日常利用・標準設定 |
-| **`performance`** | `performance` | `performance` | ON | `default` | ビルド・レンダリング・高負荷処理 |
-| **`max`** | `performance` | `performance` | ON | `performance` | PCIe スリープ遅延ゼロ（ゲーム、CUDA/AI、オーディオ） |
+| **`balanced`** / **`reset`** | `balanced` | `balance_power` | ON | `default` | 低温・静音な日常利用 |
+| **`performance`** | `balanced` | `balance_performance` | ON | `default` | 負荷に応じた自動ターボブースト（アイドル時は静音） |
+| **`max`** | `performance` | `performance` | ON | `performance` | 100% クロック固定・最大冷却・PCIe スリープ遅延ゼロ |
 
 ## インストール
 

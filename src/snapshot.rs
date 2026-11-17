@@ -22,14 +22,14 @@ pub fn parse_active_bracketed(raw: &str) -> String {
 pub fn guess_active_profile(p: &ProfileState) -> &'static str {
     if p.cpu_epp == "power" || p.platform == "quiet" || p.platform == "cool" {
         "eco"
-    } else if p.platform == "balanced" || p.cpu_epp == "balance_performance" {
+    } else if p.cpu_epp == "balance_power" {
         "balanced"
-    } else if p.platform == "performance" || p.cpu_epp == "performance" {
-        if p.aspm == "performance" {
-            "max"
-        } else {
-            "performance"
-        }
+    } else if p.cpu_epp == "balance_performance" {
+        "performance"
+    } else if p.platform == "performance" || p.cpu_epp == "performance" || p.aspm == "performance" {
+        "max"
+    } else if p.platform == "balanced" {
+        "balanced"
     } else {
         ""
     }
@@ -161,10 +161,20 @@ mod tests {
         assert_eq!(guess_active_profile(&max_prof), "max");
 
         let perf = ProfileState {
+            platform: "balanced".into(),
+            cpu_epp: "balance_performance".into(),
+            turbo: "on".into(),
             aspm: "default".into(),
-            ..max_prof
         };
         assert_eq!(guess_active_profile(&perf), "performance");
+
+        let bal = ProfileState {
+            platform: "balanced".into(),
+            cpu_epp: "balance_power".into(),
+            turbo: "on".into(),
+            aspm: "default".into(),
+        };
+        assert_eq!(guess_active_profile(&bal), "balanced");
 
         let therm = sys.join("class/thermal");
         write_mock(&therm.join("thermal_zone0/type"), "TCPU\n");

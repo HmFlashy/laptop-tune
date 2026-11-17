@@ -51,9 +51,9 @@ Rust CLI, native desktop GUI, and event-driven daemon for auditing and tuning Li
 | Mode | ACPI `platform_profile` | CPU (`EPP` / `governor`) | Turbo Boost | PCIe ASPM | Best for |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`eco`** | `quiet` *(fallback: `low-power`, `cool`)* | `power` *(or `powersave`)* | Off | `powersupersave` | Maximum battery life & silent fans |
-| **`balanced`** / **`reset`** | `balanced` | `balance_performance` *(or `schedutil`)* | On | `default` | Everyday use & safe default |
-| **`performance`** | `performance` | `performance` | On | `default` | Compilation, rendering & heavy CPU loads |
-| **`max`** | `performance` | `performance` | On | `performance` | Zero PCIe sleep latency (gaming, CUDA/AI, audio, heavy I/O) |
+| **`balanced`** / **`reset`** | `balanced` | `balance_power` *(or `schedutil`)* | On | `default` | Cool & quiet everyday use with light boost |
+| **`performance`** | `balanced` | `balance_performance` *(or `performance`)* | On | `default` | On-demand full Turbo Boost when needed, silent at idle |
+| **`max`** | `performance` | `performance` | On | `performance` | Locked 100% clocks, aggressive fan curve & zero PCIe latency |
 
 ## Installation
 

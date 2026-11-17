@@ -36,9 +36,9 @@
 | 模式 | ACPI `platform_profile` | CPU (`EPP` / `governor`) | 睿频加速 (Turbo) | PCIe ASPM | 适用场景 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`eco`** | `quiet` | `power` | 关闭 | `powersupersave` | 最长续航与静音风扇 |
-| **`balanced`** / **`reset`** | `balanced` | `balance_performance` | 开启 | `default` | 日常均衡使用 |
-| **`performance`** | `performance` | `performance` | 开启 | `default` | 编译、渲染与高负载计算 |
-| **`max`** | `performance` | `performance` | 开启 | `performance` | 零 PCIe 唤醒延迟（游戏、CUDA/AI、低延迟音频） |
+| **`balanced`** / **`reset`** | `balanced` | `balance_power` | 开启 | `default` | 日常清凉静音使用 |
+| **`performance`** | `balanced` | `balance_performance` | 开启 | `default` | 按需自动满血睿频，空闲时保持静音 |
+| **`max`** | `performance` | `performance` | 开启 | `performance` | 锁定最高频率、最大散热与零 PCIe 唤醒延迟 |
 
 ## 安装
 

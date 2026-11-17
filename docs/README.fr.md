@@ -51,9 +51,9 @@ CLI, interface graphique native et démon événementiel en Rust pour auditer et
 | Mode | ACPI `platform_profile` | CPU (`EPP` / `governor`) | Turbo Boost | PCIe ASPM | Idéal pour |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`eco`** | `quiet` *(repli : `low-power`, `cool`)* | `power` *(ou `powersave`)* | Inactif | `powersupersave` | Autonomie maximale et silence |
-| **`balanced`** / **`reset`** | `balanced` | `balance_performance` *(ou `schedutil`)* | Actif | `default` | Usage quotidien équilibré |
-| **`performance`** | `performance` | `performance` | Actif | `default` | Compilation, rendu et charges CPU lourdes |
-| **`max`** | `performance` | `performance` | Actif | `performance` | Latence PCIe nulle (jeux, CUDA/IA, audio, E/S intensives) |
+| **`balanced`** / **`reset`** | `balanced` | `balance_power` *(ou `schedutil`)* | Actif | `default` | Usage quotidien frais et silencieux |
+| **`performance`** | `balanced` | `balance_performance` *(ou `performance`)* | Actif | `default` | Turbo Boost automatique à la demande, silencieux au repos |
+| **`max`** | `performance` | `performance` | Actif | `performance` | Fréquences bloquées à 100 %, ventilation max & latence PCIe nulle |
 
 ## Installation
 

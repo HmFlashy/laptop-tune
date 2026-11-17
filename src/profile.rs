@@ -22,14 +22,14 @@ pub const PROFILES: &[ProfileSpec] = &[
     ProfileSpec {
         name: "balanced",
         platform_candidates: &["balanced"],
-        epp: "balance_performance",
+        epp: "balance_power",
         turbo: true,
         aspm: "default",
     },
     ProfileSpec {
         name: "performance",
-        platform_candidates: &["performance"],
-        epp: "performance",
+        platform_candidates: &["balanced", "performance"],
+        epp: "balance_performance",
         turbo: true,
         aspm: "default",
     },
@@ -303,7 +303,7 @@ mod tests {
                 &sys.join("devices/system/cpu/cpu0/cpufreq/energy_performance_preference")
             )
             .as_deref(),
-            Some("balance_performance")
+            Some("balance_power")
         );
         assert_eq!(
             read_trimmed(&sys.join("devices/system/cpu/intel_pstate/no_turbo")).as_deref(),
