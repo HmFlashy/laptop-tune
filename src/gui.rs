@@ -407,7 +407,7 @@ impl eframe::App for LaptopTuneApp {
                                             .selected_text(format!("{sel_s}%"))
                                             .width(68.0)
                                             .show_ui(ui, |ui| {
-                                                for val in [40u8, 50, 60, 70, 80, 90] {
+                                                for val in [50u8, 60, 70, 80, 90] {
                                                     ui.selectable_value(
                                                         &mut sel_s,
                                                         val,
@@ -437,7 +437,7 @@ impl eframe::App for LaptopTuneApp {
                                         pending_thresholds = Some((sel_s, sel_e));
                                     } else if sel_e != cur_e {
                                         if sel_e <= sel_s {
-                                            sel_s = sel_e.saturating_sub(10).max(40);
+                                            sel_s = sel_e.saturating_sub(10).max(50);
                                         }
                                         pending_thresholds = Some((sel_s, sel_e));
                                     }
