@@ -13,6 +13,18 @@ CLI, interfaz gráfica nativa y demonio basado en eventos en Rust para auditar y
 - **`laptop-tune thresholds <inicio> <fin>`**: Configura los umbrales de carga de la batería (ej. `50 80`).
 - **`laptop-tune daemon [--once]`**: Demonio basado en eventos (`udevadm monitor`, cero polling).
 
+## Diseñado para todos los portátiles y especializado en Dual-GPU (Optimus / PRIME)
+
+- **Todos los portátiles Linux (iGPU Intel / AMD)**: Soporte completo para perfiles de CPU (`EPP` / `scaling_governor`), Turbo Boost, `platform_profile` ACPI, PCIe ASPM, temperaturas y umbrales de carga de batería (`50 % – 80 %`).
+- **Especialmente diseñado para portátiles Dual-GPU híbridos (NVIDIA Optimus / AMD PRIME)**: Mantiene la GPU dedicada en suspensión profunda **`D3cold` (`SUSPENDED · auto`)** mediante reglas `udev` (`/etc/udev/rules.d/90-laptop-tune-gpu.rules`) y usa el motor OpenGL (`glow`) en la iGPU para que la interfaz nunca despierte la GPU dedicada.
+- **Uso de la GPU dedicada bajo demanda (`prime-run` / Juegos / CUDA)**:
+  - **CLI (NVIDIA)**: `prime-run <app>`
+  - **CLI (AMD dGPU)**: `DRI_PRIME=1 <app>`
+  - **Steam (Opciones de lanzamiento)**: `prime-run %command%`
+  - **Lutris / Heroic / KDE / GNOME**: Activar *Usar tarjeta gráfica dedicada* (*NVIDIA Prime Render Offload*).
+- **Coexistencia limpia con TLP**: Si TLP está instalado, `install.sh` instala [`99-laptop-tune-override.conf`](../packaging/99-laptop-tune-override.conf) para evitar cualquier conflicto de CPU o plataforma.
+- **Bypass de batería (`Conectado (sin cargar)` entre umbrales)**: Cuando la batería está entre los umbrales (ej. `50 % – 80 %`), el equipo funciona directamente con corriente alterna (`~0.00 W`) sin degradar la batería.
+
 ## Modos de energía
 
 | Modo | ACPI `platform_profile` | CPU (`EPP` / `governor`) | Turbo Boost | PCIe ASPM | Ideal para |

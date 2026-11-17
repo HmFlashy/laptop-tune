@@ -13,6 +13,18 @@ Linux ノート PC 向けの Rust 製 CLI・ネイティブ GUI・イベント�
 - **`laptop-tune thresholds <開始> <停止>`**：バッテリーの充電開始・停止しきい値を設定（例：`50 80`）。
 - **`laptop-tune daemon [--once]`**：`udevadm monitor` によるゼロポーリング・デーモン。
 
+## シングル GPU ＆ ハイブリッド Dual-GPU ノート PC（Optimus / PRIME）両対応
+
+- **すべての Linux ノート PC（Intel / AMD 内蔵 GPU のみ）**：CPU プロファイル（`EPP` / `scaling_governor`）、ターボブースト、ACPI `platform_profile`、PCIe ASPM、温度センサー、バッテリー充電しきい値（`50% – 80%`）を完全にサポート。
+- **ハイブリッド Dual-GPU ノート PC 向けに特化（NVIDIA Optimus / AMD PRIME）**：`udev` ルール（`/etc/udev/rules.d/90-laptop-tune-gpu.rules`）により専用 GPU を **`D3cold` スリープ（`SUSPENDED · auto`）** に維持し、GUI も内蔵 GPU 上の OpenGL（`glow`）で描画するため、**ダッシュボードを開いても NVIDIA/AMD GPU を一切起動しません**。
+- **必要な時だけ専用 GPU を使用（`prime-run` / ゲーム / CUDA）**：
+  - **CLI (NVIDIA)**：`prime-run <アプリ>`
+  - **CLI (AMD dGPU)**：`DRI_PRIME=1 <アプリ>`
+  - **Steam 起動オプション**：`prime-run %command%`
+  - **Lutris / Heroic / KDE / GNOME**：*専用グラフィックカードで実行（Prime Render Offload）* を有効化。
+- **TLP との競合ゼロ共存**：TLP 環境では [`99-laptop-tune-override.conf`](../packaging/99-laptop-tune-override.conf) を自動配置し、CPU プロファイルの競合を防止します。
+- **バッテリーバイパス保護（`電源接続 (充電なし)`）**：充電しきい値の間（例：`50% – 80%`）では AC 電源から直接給電（`~0.00 W`）し、バッテリーの劣化を防ぎます。
+
 ## 電源モード
 
 | モード | ACPI `platform_profile` | CPU (`EPP` / `governor`) | ターボブースト | PCIe ASPM | 用途 |
