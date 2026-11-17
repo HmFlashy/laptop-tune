@@ -12,7 +12,7 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            auto_switch_ac_bat: false,
+            auto_switch_ac_bat: true,
             ac_profile: "performance".into(),
             bat_profile: "eco".into(),
         }
