@@ -236,6 +236,11 @@ pub fn run_tray_host() {
                     if let Some(cfg_path) = default_config_path() {
                         let cfg = load_config_from(&cfg_path);
                         if cfg.auto_switch_ac_bat {
+                            if Path::new("/etc/tlp.conf").exists() {
+                                let _ = Command::new("udevadm")
+                                    .args(["settle", "--timeout=2"])
+                                    .status();
+                            }
                             let target = if on_ac {
                                 &cfg.ac_profile
                             } else {
