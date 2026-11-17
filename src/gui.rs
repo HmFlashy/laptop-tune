@@ -278,39 +278,43 @@ impl eframe::App for LaptopTuneApp {
                                 self.save_config();
                             }
                         });
-                        ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new("On AC:").size(12.0).color(MUTED_TEXT));
-                            let mut ac = self.config.ac_profile.clone();
-                            egui::ComboBox::from_id_salt("ac_profile_combo")
-                                .selected_text(&ac)
-                                .width(100.0)
-                                .show_ui(ui, |ui| {
-                                    for prof in ["eco", "balanced", "performance", "gaming"] {
-                                        ui.selectable_value(&mut ac, prof.into(), prof);
-                                    }
-                                });
-                            if ac != self.config.ac_profile {
-                                self.config.ac_profile = ac;
-                                self.save_config();
-                            }
-                            ui.label(
-                                egui::RichText::new("On Battery:")
-                                    .size(12.0)
-                                    .color(MUTED_TEXT),
-                            );
-                            let mut bat = self.config.bat_profile.clone();
-                            egui::ComboBox::from_id_salt("bat_profile_combo")
-                                .selected_text(&bat)
-                                .width(100.0)
-                                .show_ui(ui, |ui| {
-                                    for prof in ["eco", "balanced", "performance", "gaming"] {
-                                        ui.selectable_value(&mut bat, prof.into(), prof);
-                                    }
-                                });
-                            if bat != self.config.bat_profile {
-                                self.config.bat_profile = bat;
-                                self.save_config();
-                            }
+                        ui.add_enabled_ui(self.config.auto_switch_ac_bat, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(
+                                    egui::RichText::new("On AC:").size(12.0).color(MUTED_TEXT),
+                                );
+                                let mut ac = self.config.ac_profile.clone();
+                                egui::ComboBox::from_id_salt("ac_profile_combo")
+                                    .selected_text(&ac)
+                                    .width(100.0)
+                                    .show_ui(ui, |ui| {
+                                        for prof in ["eco", "balanced", "performance", "gaming"] {
+                                            ui.selectable_value(&mut ac, prof.into(), prof);
+                                        }
+                                    });
+                                if ac != self.config.ac_profile {
+                                    self.config.ac_profile = ac;
+                                    self.save_config();
+                                }
+                                ui.label(
+                                    egui::RichText::new("On Battery:")
+                                        .size(12.0)
+                                        .color(MUTED_TEXT),
+                                );
+                                let mut bat = self.config.bat_profile.clone();
+                                egui::ComboBox::from_id_salt("bat_profile_combo")
+                                    .selected_text(&bat)
+                                    .width(100.0)
+                                    .show_ui(ui, |ui| {
+                                        for prof in ["eco", "balanced", "performance", "gaming"] {
+                                            ui.selectable_value(&mut bat, prof.into(), prof);
+                                        }
+                                    });
+                                if bat != self.config.bat_profile {
+                                    self.config.bat_profile = bat;
+                                    self.save_config();
+                                }
+                            });
                         });
                         if let Some((msg, is_err)) = &self.status_msg {
                             ui.add_space(4.0);
