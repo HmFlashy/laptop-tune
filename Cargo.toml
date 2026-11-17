@@ -1,6 +1,6 @@
 [package]
 name = "laptop-tune"
-version = "2.3.0"
+version = "2.4.0"
 edition = "2021"
 description = "Unified Linux laptop power, hybrid GPU runtime PM, thermal, and battery threshold auditor & configurator."
 license = "MIT"
