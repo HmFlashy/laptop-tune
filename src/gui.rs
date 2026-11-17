@@ -20,7 +20,7 @@ const ACCENT_RED: egui::Color32 = egui::Color32::from_rgb(220, 68, 55);
 struct LaptopTuneApp {
     snapshot: Snapshot,
     last_refresh: Instant,
-    status_msg: Option<(String, bool)>,
+    status_msg: Option<(String, bool, Instant)>,
     config: AppConfig,
     autostart_enabled: bool,
     thresh_start: u8,
@@ -73,7 +73,7 @@ impl LaptopTuneApp {
 
         match result {
             Ok(out) if out.status.success() => {
-                self.status_msg = Some((success_msg, false));
+                self.status_msg = Some((success_msg, false, Instant::now()));
                 self.snapshot = collect_snapshot();
                 notify_tray_refresh();
                 true
@@ -85,11 +85,11 @@ impl LaptopTuneApp {
                 } else {
                     err
                 };
-                self.status_msg = Some((msg, true));
+                self.status_msg = Some((msg, true, Instant::now()));
                 false
             }
             Err(e) => {
-                self.status_msg = Some((format!("pkexec error: {e}"), true));
+                self.status_msg = Some((format!("pkexec error: {e}"), true, Instant::now()));
                 false
             }
         }
@@ -281,7 +281,7 @@ impl eframe::App for LaptopTuneApp {
                                     if let Err(e) =
                                         set_autostart_at(&path, &exe, self.autostart_enabled)
                                     {
-                                        self.status_msg = Some((e, true));
+                                        self.status_msg = Some((e, true, Instant::now()));
                                     }
                                 }
                             }
@@ -333,11 +333,6 @@ impl eframe::App for LaptopTuneApp {
                                 }
                             });
                         });
-                        if let Some((msg, is_err)) = &self.status_msg {
-                            ui.add_space(4.0);
-                            let col = if *is_err { ACCENT_RED } else { ACCENT_GREEN };
-                            ui.label(egui::RichText::new(msg).size(12.0).color(col));
-                        }
                     });
 
                     ui.add_space(10.0);
@@ -523,6 +518,34 @@ impl eframe::App for LaptopTuneApp {
                             });
                     });
                 });
+
+                if self
+                    .status_msg
+                    .as_ref()
+                    .is_some_and(|(_, _, ts)| ts.elapsed() >= Duration::from_secs(3))
+                {
+                    self.status_msg = None;
+                }
+                if let Some((msg, is_err, _)) = &self.status_msg {
+                    let col = if *is_err { ACCENT_RED } else { ACCENT_GREEN };
+                    let bg = ui.visuals().extreme_bg_color;
+                    egui::Area::new(ui.make_persistent_id("toast_notification"))
+                        .anchor(egui::Align2::CENTER_BOTTOM, egui::vec2(0.0, -14.0))
+                        .interactable(false)
+                        .order(egui::Order::Foreground)
+                        .show(&ctx, |ui| {
+                            egui::Frame::new()
+                                .fill(bg)
+                                .stroke(egui::Stroke::new(1.2, col))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 7))
+                                .show(ui, |ui| {
+                                    ui.label(
+                                        egui::RichText::new(msg).size(12.5).strong().color(col),
+                                    );
+                                });
+                        });
+                }
             });
     }
 }
