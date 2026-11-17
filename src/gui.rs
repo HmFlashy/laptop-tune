@@ -134,7 +134,7 @@ impl LaptopTuneApp {
 fn card_frame() -> egui::Frame {
     egui::Frame::new()
         .fill(CARD_BG)
-        .stroke(egui::Stroke::new(1.0, CARD_BORDER))
+        .stroke(egui::Stroke::new(1.0_f32, CARD_BORDER))
         .corner_radius(egui::CornerRadius::same(10))
         .inner_margin(egui::Margin::same(12))
 }
@@ -151,7 +151,7 @@ fn section_title(ui: &mut egui::Ui, title: &str) {
 fn pill(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
     egui::Frame::new()
         .fill(color.linear_multiply(0.16))
-        .stroke(egui::Stroke::new(1.0, color.linear_multiply(0.5)))
+        .stroke(egui::Stroke::new(1.0_f32, color.linear_multiply(0.5)))
         .corner_radius(egui::CornerRadius::same(6))
         .inner_margin(egui::Margin::symmetric(8, 3))
         .show(ui, |ui| {
@@ -200,6 +200,10 @@ impl eframe::App for LaptopTuneApp {
                     );
                     pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), ACCENT_CYAN);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button("Quit").clicked() {
+                            self.force_quit = true;
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
                         if ui.button("Refresh").clicked() {
                             self.snapshot = collect_snapshot();
                             self.last_refresh = Instant::now();
