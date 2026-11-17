@@ -3,6 +3,7 @@ mod config;
 mod daemon;
 mod gpu;
 mod gui;
+mod i18n;
 mod profile;
 mod rules;
 mod snapshot;

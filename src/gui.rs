@@ -9,6 +9,7 @@ use crate::config::{
     set_autostart_at, AppConfig,
 };
 use crate::gpu::vendor_name;
+use crate::i18n::tr;
 use crate::snapshot::{collect_snapshot, guess_active_profile, Snapshot};
 use crate::tray::notify_tray_refresh;
 
@@ -63,7 +64,7 @@ impl LaptopTuneApp {
             Ok(out) => {
                 let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
                 let msg = if err.is_empty() {
-                    "Action failed or cancelled.".into()
+                    tr().action_failed.into()
                 } else {
                     err
                 };
@@ -88,7 +89,7 @@ impl LaptopTuneApp {
     }
 
     fn reset_defaults(&mut self) {
-        self.run_privileged(&["reset"], "Defaults restored (balanced).".into());
+        self.run_privileged(&["reset"], tr().defaults_restored.into());
     }
 
     fn active_profile_guess(&self) -> &'static str {
@@ -131,6 +132,7 @@ impl eframe::App for LaptopTuneApp {
         }
         ctx.request_repaint_after(Duration::from_millis(1500));
 
+        let t = tr();
         let accent = ui.visuals().hyperlink_color;
         let muted = ui.visuals().weak_text_color();
         let strong = ui.visuals().strong_text_color();
@@ -152,10 +154,10 @@ impl eframe::App for LaptopTuneApp {
                     );
                     pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), accent);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("Close").clicked() {
+                        if ui.button(t.close).clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
-                        if ui.button("Refresh").clicked() {
+                        if ui.button(t.refresh).clicked() {
                             self.snapshot = collect_snapshot();
                             self.last_refresh = Instant::now();
                         }
@@ -167,14 +169,14 @@ impl eframe::App for LaptopTuneApp {
                     // 1. Power Profile Card
                     card_frame(ui).show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            section_title(ui, "Power Profile");
+                            section_title(ui, t.power_profile);
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
                                     if ui
                                         .add(
                                             egui::Button::new(
-                                                egui::RichText::new("Reset Default").size(11.5),
+                                                egui::RichText::new(t.reset_default).size(11.5),
                                             )
                                             .corner_radius(6.0),
                                         )
@@ -243,7 +245,7 @@ impl eframe::App for LaptopTuneApp {
                         ui.add_space(4.0);
                         ui.horizontal(|ui| {
                             if ui
-                                .checkbox(&mut self.autostart_enabled, "Start on login")
+                                .checkbox(&mut self.autostart_enabled, t.start_on_login)
                                 .changed()
                             {
                                 if let Some(path) = default_autostart_path() {
@@ -257,7 +259,7 @@ impl eframe::App for LaptopTuneApp {
                                 }
                             }
                             if ui
-                                .checkbox(&mut self.config.auto_switch_ac_bat, "Auto-switch:")
+                                .checkbox(&mut self.config.auto_switch_ac_bat, t.auto_switch)
                                 .changed()
                             {
                                 self.save_config();
@@ -265,7 +267,7 @@ impl eframe::App for LaptopTuneApp {
                         });
                         ui.add_enabled_ui(self.config.auto_switch_ac_bat, |ui| {
                             ui.horizontal(|ui| {
-                                ui.label(egui::RichText::new("On Battery:").color(muted));
+                                ui.label(egui::RichText::new(t.on_battery).color(muted));
                                 let mut bat = self.config.bat_profile.clone();
                                 egui::ComboBox::from_id_salt("bat_profile_combo")
                                     .selected_text(&bat)
@@ -280,7 +282,7 @@ impl eframe::App for LaptopTuneApp {
                                     self.save_config();
                                 }
                                 ui.add_space(8.0);
-                                ui.label(egui::RichText::new("On AC:").color(muted));
+                                ui.label(egui::RichText::new(t.on_ac).color(muted));
                                 let mut ac = self.config.ac_profile.clone();
                                 egui::ComboBox::from_id_salt("ac_profile_combo")
                                     .selected_text(&ac)
@@ -307,10 +309,10 @@ impl eframe::App for LaptopTuneApp {
 
                     // 2. Battery Card
                     card_frame(ui).show(ui, |ui| {
-                        section_title(ui, "Battery");
+                        section_title(ui, t.battery);
                         ui.add_space(4.0);
                         if self.snapshot.batteries.is_empty() {
-                            ui.label(egui::RichText::new("No battery detected.").color(muted));
+                            ui.label(egui::RichText::new(t.no_battery).color(muted));
                         } else {
                             for bat in &self.snapshot.batteries {
                                 let pct_num = bat.capacity.parse::<f32>().unwrap_or(0.0);
@@ -352,7 +354,8 @@ impl eframe::App for LaptopTuneApp {
                                     ui.add_space(4.0);
                                     ui.label(
                                         egui::RichText::new(format!(
-                                            "Charge thresholds: start {s}% / stop {e}%"
+                                            "{}: start {s}% / stop {e}%",
+                                            t.charge_thresholds
                                         ))
                                         .size(12.0)
                                         .color(muted),
@@ -367,7 +370,7 @@ impl eframe::App for LaptopTuneApp {
                     // 3. GPUs & Sleep Card
                     card_frame(ui).show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            section_title(ui, "GPUs & Sleep");
+                            section_title(ui, t.gpus_and_sleep);
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
@@ -410,7 +413,7 @@ impl eframe::App for LaptopTuneApp {
 
                     // 4. Thermals Card
                     card_frame(ui).show(ui, |ui| {
-                        section_title(ui, "Thermals");
+                        section_title(ui, t.thermals);
                         ui.add_space(4.0);
                         egui::Grid::new("thermals_grid")
                             .num_columns(2)

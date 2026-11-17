@@ -11,6 +11,7 @@ use ksni::blocking::{Handle, TrayMethods};
 
 use crate::config::{default_config_path, load_config_from};
 use crate::daemon::is_on_ac_in;
+use crate::i18n::tr;
 use crate::snapshot::{guess_active_profile, read_profile_state_in};
 
 pub enum TrayEvent {
@@ -50,12 +51,13 @@ impl ksni::Tray for LaptopTuneTray {
 
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         use ksni::menu::*;
+        let t = tr();
         let state = read_profile_state_in(Path::new("/sys"));
         let active = guess_active_profile(&state);
 
         vec![
             StandardItem {
-                label: "Show / Hide".into(),
+                label: t.show_hide.into(),
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ToggleWindow);
                 }),
@@ -64,7 +66,7 @@ impl ksni::Tray for LaptopTuneTray {
             .into(),
             MenuItem::Separator,
             CheckmarkItem {
-                label: "Profile: Eco".into(),
+                label: "Eco".into(),
                 checked: active == "eco",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("eco".into()));
@@ -73,7 +75,7 @@ impl ksni::Tray for LaptopTuneTray {
             }
             .into(),
             CheckmarkItem {
-                label: "Profile: Balanced".into(),
+                label: "Balanced".into(),
                 checked: active == "balanced",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("balanced".into()));
@@ -82,7 +84,7 @@ impl ksni::Tray for LaptopTuneTray {
             }
             .into(),
             CheckmarkItem {
-                label: "Profile: Performance".into(),
+                label: "Performance".into(),
                 checked: active == "performance",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("performance".into()));
@@ -91,7 +93,7 @@ impl ksni::Tray for LaptopTuneTray {
             }
             .into(),
             CheckmarkItem {
-                label: "Profile: Max".into(),
+                label: "Max".into(),
                 checked: active == "max",
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::ApplyProfile("max".into()));
@@ -101,7 +103,7 @@ impl ksni::Tray for LaptopTuneTray {
             .into(),
             MenuItem::Separator,
             StandardItem {
-                label: "Quit".into(),
+                label: t.quit.into(),
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send(TrayEvent::Quit);
                 }),
