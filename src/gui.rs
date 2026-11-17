@@ -12,20 +12,14 @@ use crate::gpu::vendor_name;
 use crate::snapshot::{collect_snapshot, guess_active_profile, Snapshot};
 use crate::tray::notify_tray_refresh;
 
-const ACCENT_BLUE: egui::Color32 = egui::Color32::from_rgb(61, 174, 233);
-const ACCENT_GREEN: egui::Color32 = egui::Color32::from_rgb(46, 204, 113);
-const ACCENT_AMBER: egui::Color32 = egui::Color32::from_rgb(243, 156, 18);
-const ACCENT_RED: egui::Color32 = egui::Color32::from_rgb(231, 76, 60);
-const PANEL_BG: egui::Color32 = egui::Color32::from_rgb(27, 30, 32);
-const CARD_BG: egui::Color32 = egui::Color32::from_rgb(35, 38, 41);
-const CARD_BORDER: egui::Color32 = egui::Color32::from_rgb(59, 64, 69);
-const MUTED_TEXT: egui::Color32 = egui::Color32::from_rgb(161, 169, 177);
+const ACCENT_GREEN: egui::Color32 = egui::Color32::from_rgb(39, 174, 96);
+const ACCENT_AMBER: egui::Color32 = egui::Color32::from_rgb(230, 126, 34);
+const ACCENT_RED: egui::Color32 = egui::Color32::from_rgb(220, 68, 55);
 
 struct LaptopTuneApp {
     snapshot: Snapshot,
     last_refresh: Instant,
     status_msg: Option<(String, bool)>,
-    styled: bool,
     config: AppConfig,
     autostart_enabled: bool,
 }
@@ -40,26 +34,18 @@ impl LaptopTuneApp {
             snapshot: collect_snapshot(),
             last_refresh: Instant::now(),
             status_msg: None,
-            styled: false,
             config,
             autostart_enabled,
         }
     }
 
-    fn apply_theme(ctx: &egui::Context) {
-        let mut visuals = egui::Visuals::dark();
-        visuals.panel_fill = PANEL_BG;
-        visuals.widgets.noninteractive.bg_fill = CARD_BG;
-        visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(49, 54, 59);
-        visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(61, 67, 73);
-        visuals.widgets.active.bg_fill = egui::Color32::from_rgb(74, 82, 90);
-        visuals.selection.bg_fill = ACCENT_BLUE.linear_multiply(0.35);
-        ctx.set_visuals_of(egui::Theme::Dark, visuals);
-
-        let mut style = (*ctx.style_of(egui::Theme::Dark)).clone();
-        style.spacing.item_spacing = egui::vec2(8.0, 8.0);
-        style.spacing.button_padding = egui::vec2(12.0, 6.0);
-        ctx.set_style_of(egui::Theme::Dark, style);
+    fn configure_spacing(ctx: &egui::Context) {
+        for theme in [egui::Theme::Dark, egui::Theme::Light] {
+            let mut style = (*ctx.style_of(theme)).clone();
+            style.spacing.item_spacing = egui::vec2(8.0, 8.0);
+            style.spacing.button_padding = egui::vec2(12.0, 6.0);
+            ctx.set_style_of(theme, style);
+        }
     }
 
     fn run_privileged(&mut self, args: &[&str], success_msg: String) -> bool {
@@ -109,27 +95,24 @@ impl LaptopTuneApp {
     }
 }
 
-fn card_frame() -> egui::Frame {
+fn card_frame(ui: &egui::Ui) -> egui::Frame {
+    let visuals = ui.visuals();
     egui::Frame::new()
-        .fill(CARD_BG)
-        .stroke(egui::Stroke::new(1.0_f32, CARD_BORDER))
-        .corner_radius(egui::CornerRadius::same(10))
+        .fill(visuals.faint_bg_color)
+        .stroke(visuals.widgets.noninteractive.bg_stroke)
+        .corner_radius(egui::CornerRadius::same(8))
         .inner_margin(egui::Margin::same(12))
 }
 
 fn section_title(ui: &mut egui::Ui, title: &str) {
-    ui.label(
-        egui::RichText::new(title)
-            .size(14.0)
-            .strong()
-            .color(ACCENT_BLUE),
-    );
+    let accent = ui.visuals().hyperlink_color;
+    ui.label(egui::RichText::new(title).size(14.0).strong().color(accent));
 }
 
 fn pill(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
     egui::Frame::new()
-        .fill(color.linear_multiply(0.16))
-        .stroke(egui::Stroke::new(1.0_f32, color.linear_multiply(0.5)))
+        .fill(color.linear_multiply(0.15))
+        .stroke(egui::Stroke::new(1.0_f32, color.linear_multiply(0.45)))
         .corner_radius(egui::CornerRadius::same(6))
         .inner_margin(egui::Margin::symmetric(8, 3))
         .show(ui, |ui| {
@@ -140,10 +123,6 @@ fn pill(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
 impl eframe::App for LaptopTuneApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
-        if !self.styled {
-            Self::apply_theme(&ctx);
-            self.styled = true;
-        }
 
         if self.last_refresh.elapsed() >= Duration::from_millis(1500) {
             self.snapshot = collect_snapshot();
@@ -151,8 +130,16 @@ impl eframe::App for LaptopTuneApp {
         }
         ctx.request_repaint_after(Duration::from_millis(1500));
 
+        let accent = ui.visuals().hyperlink_color;
+        let muted = ui.visuals().weak_text_color();
+        let strong = ui.visuals().strong_text_color();
+
         egui::CentralPanel::default()
-            .frame(egui::Frame::new().fill(PANEL_BG).inner_margin(14.0))
+            .frame(
+                egui::Frame::new()
+                    .fill(ui.visuals().panel_fill)
+                    .inner_margin(14.0),
+            )
             .show(ui, |ui| {
                 // Header
                 ui.horizontal(|ui| {
@@ -160,9 +147,9 @@ impl eframe::App for LaptopTuneApp {
                         egui::RichText::new("laptop-tune")
                             .size(20.0)
                             .strong()
-                            .color(egui::Color32::WHITE),
+                            .color(strong),
                     );
-                    pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), ACCENT_BLUE);
+                    pill(ui, &format!("v{}", env!("CARGO_PKG_VERSION")), accent);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("Close").clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
@@ -177,7 +164,7 @@ impl eframe::App for LaptopTuneApp {
 
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     // 1. Power Profile Card
-                    card_frame().show(ui, |ui| {
+                    card_frame(ui).show(ui, |ui| {
                         ui.horizontal(|ui| {
                             section_title(ui, "Power Profile");
                             ui.with_layout(
@@ -203,17 +190,17 @@ impl eframe::App for LaptopTuneApp {
                             pill(
                                 ui,
                                 &format!("Platform: {}", self.snapshot.profile.platform),
-                                MUTED_TEXT,
+                                muted,
                             );
                             pill(
                                 ui,
                                 &format!("EPP: {}", self.snapshot.profile.cpu_epp),
-                                MUTED_TEXT,
+                                muted,
                             );
                             let turbo_col = if self.snapshot.profile.turbo == "on" {
                                 ACCENT_GREEN
                             } else {
-                                MUTED_TEXT
+                                muted
                             };
                             pill(
                                 ui,
@@ -237,9 +224,9 @@ impl eframe::App for LaptopTuneApp {
                                     egui::Button::new(
                                         egui::RichText::new(label)
                                             .strong()
-                                            .color(egui::Color32::from_rgb(20, 23, 25)),
+                                            .color(ui.visuals().selection.stroke.color),
                                     )
-                                    .fill(ACCENT_BLUE)
+                                    .fill(ui.visuals().selection.bg_fill)
                                     .corner_radius(6.0)
                                 } else {
                                     egui::Button::new(label).corner_radius(6.0)
@@ -277,9 +264,7 @@ impl eframe::App for LaptopTuneApp {
                         });
                         ui.add_enabled_ui(self.config.auto_switch_ac_bat, |ui| {
                             ui.horizontal(|ui| {
-                                ui.label(
-                                    egui::RichText::new("On AC:").size(12.0).color(MUTED_TEXT),
-                                );
+                                ui.label(egui::RichText::new("On AC:").size(12.0).color(muted));
                                 let mut ac = self.config.ac_profile.clone();
                                 egui::ComboBox::from_id_salt("ac_profile_combo")
                                     .selected_text(&ac)
@@ -294,9 +279,7 @@ impl eframe::App for LaptopTuneApp {
                                     self.save_config();
                                 }
                                 ui.label(
-                                    egui::RichText::new("On Battery:")
-                                        .size(12.0)
-                                        .color(MUTED_TEXT),
+                                    egui::RichText::new("On Battery:").size(12.0).color(muted),
                                 );
                                 let mut bat = self.config.bat_profile.clone();
                                 egui::ComboBox::from_id_salt("bat_profile_combo")
@@ -323,11 +306,11 @@ impl eframe::App for LaptopTuneApp {
                     ui.add_space(10.0);
 
                     // 2. Battery Card
-                    card_frame().show(ui, |ui| {
+                    card_frame(ui).show(ui, |ui| {
                         section_title(ui, "Battery");
                         ui.add_space(4.0);
                         if self.snapshot.batteries.is_empty() {
-                            ui.label(egui::RichText::new("No battery detected.").color(MUTED_TEXT));
+                            ui.label(egui::RichText::new("No battery detected.").color(muted));
                         } else {
                             for bat in &self.snapshot.batteries {
                                 let pct_num = bat.capacity.parse::<f32>().unwrap_or(0.0);
@@ -351,7 +334,7 @@ impl eframe::App for LaptopTuneApp {
                                         ui.with_layout(
                                             egui::Layout::right_to_left(egui::Align::Center),
                                             |ui| {
-                                                pill(ui, &format!("{w:.2} W"), ACCENT_BLUE);
+                                                pill(ui, &format!("{w:.2} W"), accent);
                                             },
                                         );
                                     }
@@ -372,7 +355,7 @@ impl eframe::App for LaptopTuneApp {
                                             "Charge thresholds: start {s}% / stop {e}%"
                                         ))
                                         .size(12.0)
-                                        .color(MUTED_TEXT),
+                                        .color(muted),
                                     );
                                 }
                             }
@@ -382,17 +365,13 @@ impl eframe::App for LaptopTuneApp {
                     ui.add_space(10.0);
 
                     // 3. GPUs & Sleep Card
-                    card_frame().show(ui, |ui| {
+                    card_frame(ui).show(ui, |ui| {
                         ui.horizontal(|ui| {
                             section_title(ui, "GPUs & Sleep");
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    pill(
-                                        ui,
-                                        &format!("sleep: {}", self.snapshot.mem_sleep),
-                                        MUTED_TEXT,
-                                    );
+                                    pill(ui, &format!("sleep: {}", self.snapshot.mem_sleep), muted);
                                 },
                             );
                         });
@@ -430,7 +409,7 @@ impl eframe::App for LaptopTuneApp {
                     ui.add_space(10.0);
 
                     // 4. Thermals Card
-                    card_frame().show(ui, |ui| {
+                    card_frame(ui).show(ui, |ui| {
                         section_title(ui, "Thermals");
                         ui.add_space(4.0);
                         egui::Grid::new("thermals_grid")
@@ -445,7 +424,7 @@ impl eframe::App for LaptopTuneApp {
                                     } else {
                                         ACCENT_GREEN
                                     };
-                                    ui.label(egui::RichText::new(zone).color(MUTED_TEXT));
+                                    ui.label(egui::RichText::new(zone).color(muted));
                                     pill(ui, &format!("{deg}°C"), color);
                                     ui.end_row();
                                 }
@@ -467,7 +446,10 @@ pub fn run_gui() {
     if let Err(e) = eframe::run_native(
         "laptop-tune",
         options,
-        Box::new(|_cc| Ok(Box::new(LaptopTuneApp::new()))),
+        Box::new(|cc| {
+            LaptopTuneApp::configure_spacing(&cc.egui_ctx);
+            Ok(Box::new(LaptopTuneApp::new()))
+        }),
     ) {
         eprintln!("Failed to launch GUI: {e}");
         std::process::exit(1);

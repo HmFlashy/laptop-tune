@@ -10,15 +10,14 @@
     </linearGradient>
   </defs>
 
-  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)" stroke="#474d54" stroke-width="3"/>
+  <rect x="2" y="2" width="124" height="124" rx="28" fill="url(#bg)" stroke="#474d54" stroke-width="3"/>
 
-  <circle cx="64" cy="60" r="34" fill="none" stroke="#1b1e20" stroke-width="10"/>
-  <circle cx="64" cy="60" r="34" fill="none" stroke="#474d54" stroke-width="7" stroke-linecap="round"
-          stroke-dasharray="158 214" transform="rotate(138 64 60)"/>
-  <circle cx="64" cy="60" r="34" fill="none" stroke="url(#accent)" stroke-width="7" stroke-linecap="round"
-          stroke-dasharray="115 214" transform="rotate(138 64 60)"/>
+  <circle cx="64" cy="60" r="42" fill="none" stroke="#474d54" stroke-width="10" stroke-linecap="round"
+          stroke-dasharray="195 264" transform="rotate(138 64 60)"/>
+  <circle cx="64" cy="60" r="42" fill="none" stroke="url(#accent)" stroke-width="10" stroke-linecap="round"
+          stroke-dasharray="142 264" transform="rotate(138 64 60)"/>
 
-  <polygon points="67,38 51,62 62,62 58,82 77,57 65,57" fill="#3daee9"/>
+  <polygon points="68,30 46,64 61,64 56,92 82,56 66,56" fill="#3daee9"/>
 
-  <rect x="38" y="99" width="52" height="6" rx="3" fill="#7f8c8d"/>
+  <rect x="30" y="106" width="68" height="8" rx="4" fill="#95a5a6"/>
 </svg>
