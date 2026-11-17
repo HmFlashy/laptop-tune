@@ -33,9 +33,10 @@ install -Dm644 LICENSE "${BUILD_DIR}/usr/share/doc/laptop-tune/copyright"
 cat > "${BUILD_DIR}/DEBIAN/postinst" <<'EOF'
 #!/bin/sh
 set -e
-if [ -d /etc/udev/rules.d ] && [ -x /usr/bin/laptop-tune ]; then
-  /usr/bin/laptop-tune generate-rules | awk '/^# === Generated TLP/{exit} {print}' > /etc/udev/rules.d/90-laptop-tune-gpu.rules || true
+if [ -x /usr/bin/laptop-tune ]; then
+  /usr/bin/laptop-tune setup-gpu || true
   udevadm control --reload-rules 2>/dev/null || true
+  udevadm trigger --subsystem-match=pci --subsystem-match=drm 2>/dev/null || true
 fi
 pkill -f "laptop-tune gui" 2>/dev/null || true
 exit 0

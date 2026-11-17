@@ -9,8 +9,8 @@ POLKIT_DIR="/usr/share/polkit-1/actions"
 TARGET_BIN="target/release/laptop-tune"
 
 if [[ "${1:-}" == "--uninstall" ]]; then
-  echo "Removing ${BIN_DIR}/laptop-tune, launcher, icon, udev rules, and polkit policy..."
-  sudo rm -f "${BIN_DIR}/laptop-tune" "${APP_DIR}/laptop-tune.desktop" "${ICON_DIR}/laptop-tune.svg" "${POLKIT_DIR}/org.laptop-tune.policy" /etc/tlp.d/99-laptop-tune-override.conf /etc/udev/rules.d/90-laptop-tune-gpu.rules
+  echo "Removing ${BIN_DIR}/laptop-tune, launcher, icon, udev/modprobe/env rules, and polkit policy..."
+  sudo rm -f "${BIN_DIR}/laptop-tune" "${APP_DIR}/laptop-tune.desktop" "${ICON_DIR}/laptop-tune.svg" "${POLKIT_DIR}/org.laptop-tune.policy" /etc/tlp.d/99-laptop-tune-override.conf /etc/udev/rules.d/90-laptop-tune-gpu.rules /etc/modprobe.d/90-laptop-tune-gpu.conf /etc/environment.d/90-laptop-tune-igpu.conf
   sudo udevadm control --reload-rules 2>/dev/null || true
   echo "Uninstalled."
   exit 0
@@ -35,10 +35,9 @@ if [[ -d /etc/tlp.d ]]; then
   sudo install -Dm644 "packaging/99-laptop-tune-override.conf" "/etc/tlp.d/99-laptop-tune-override.conf"
 fi
 
-if [[ -d /etc/udev/rules.d ]]; then
-  "${TARGET_BIN}" generate-rules | awk '/^# === Generated TLP/{exit} {print}' | sudo tee /etc/udev/rules.d/90-laptop-tune-gpu.rules >/dev/null
-  sudo udevadm control --reload-rules 2>/dev/null || true
-fi
+sudo "${BIN_DIR}/laptop-tune" setup-gpu
+sudo udevadm control --reload-rules 2>/dev/null || true
+sudo udevadm trigger --subsystem-match=pci --subsystem-match=drm 2>/dev/null || true
 
 pkill -f "laptop-tune gui" 2>/dev/null || true
 

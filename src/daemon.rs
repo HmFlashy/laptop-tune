@@ -60,9 +60,21 @@ pub fn enable_gpu_runtime_pm_in(pci_root: &Path, dry_run: bool) {
     let gpus = detect_gpus_in(pci_root);
     for (idx, gpu) in gpus.iter().enumerate() {
         if gpu.vendor == "0x10de" || (gpus.len() > 1 && idx > 0) {
-            let ctrl = pci_root.join(&gpu.pci_slot).join("power/control");
-            if ctrl.exists() {
-                let _ = write_value(&ctrl, "auto", dry_run);
+            let prefix = gpu
+                .pci_slot
+                .rsplit_once('.')
+                .map(|(p, _)| format!("{p}."))
+                .unwrap_or_else(|| gpu.pci_slot.clone());
+            if let Ok(entries) = fs::read_dir(pci_root) {
+                for entry in entries.flatten() {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    if name == gpu.pci_slot || name.starts_with(&prefix) {
+                        let ctrl = entry.path().join("power/control");
+                        if ctrl.exists() {
+                            let _ = write_value(&ctrl, "auto", dry_run);
+                        }
+                    }
+                }
             }
         }
     }

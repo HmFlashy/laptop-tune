@@ -16,7 +16,7 @@ use std::process;
 
 use gpu::vendor_name;
 use profile::{apply_profile_in, reset_defaults_in};
-use rules::generate_rules_text;
+use rules::{apply_gpu_setup_in, generate_rules_text};
 use snapshot::collect_snapshot;
 
 fn cmd_status() {
@@ -114,6 +114,9 @@ fn print_help() {
     println!("  reset [--dry-run]           Restore safe default (balanced) kernel settings");
     println!("  thresholds <start> <stop>   Set battery charge thresholds (e.g. 50 80 or 0 100)");
     println!("  daemon [--once]             Run event-driven AC/BAT + GPU + battery daemon");
+    println!(
+        "  setup-gpu [--dry-run]       Install udev/modprobe/DRM rules for hybrid GPU D3 sleep"
+    );
     println!("  generate-rules              Detect hardware and print udev + TLP configs");
     println!("  help                        Show this help message");
 }
@@ -185,6 +188,14 @@ fn main() {
         Some("daemon") => {
             let once = args.iter().any(|a| a == "--once");
             daemon::run_daemon(once);
+        }
+        Some("setup-gpu") => {
+            let dry_run = args.iter().any(|a| a == "--dry-run");
+            if let Err(e) = apply_gpu_setup_in(Path::new("/sys"), Path::new("/etc"), dry_run) {
+                eprintln!("{e}");
+                process::exit(1);
+            }
+            println!("Hybrid GPU runtime PM and compositor rules configured.");
         }
         Some("generate-rules") => cmd_generate_rules(),
         Some("help") | Some("--help") | Some("-h") => print_help(),

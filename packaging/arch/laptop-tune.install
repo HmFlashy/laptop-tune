@@ -1,7 +1,8 @@
 post_install() {
-  if [ -d /etc/udev/rules.d ] && [ -x /usr/bin/laptop-tune ]; then
-    /usr/bin/laptop-tune generate-rules | awk '/^# === Generated TLP/{exit} {print}' > /etc/udev/rules.d/90-laptop-tune-gpu.rules || true
+  if [ -x /usr/bin/laptop-tune ]; then
+    /usr/bin/laptop-tune setup-gpu || true
     udevadm control --reload-rules 2>/dev/null || true
+    udevadm trigger --subsystem-match=pci --subsystem-match=drm 2>/dev/null || true
   fi
   pkill -f "laptop-tune gui" 2>/dev/null || true
 }
@@ -11,6 +12,6 @@ post_upgrade() {
 }
 
 post_remove() {
-  rm -f /etc/udev/rules.d/90-laptop-tune-gpu.rules
+  rm -f /etc/udev/rules.d/90-laptop-tune-gpu.rules /etc/modprobe.d/90-laptop-tune-gpu.conf /etc/environment.d/90-laptop-tune-igpu.conf
   udevadm control --reload-rules 2>/dev/null || true
 }
