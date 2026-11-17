@@ -6,7 +6,7 @@ Rust CLI & native desktop GUI for auditing and tuning Linux laptops: hybrid GPU 
 
 - **`laptop-tune status`**: Live readout of battery draw (`W`) and charge thresholds, PCI GPUs (`driver`, `runtime_status`, D3 `suspended` check), `mem_sleep`, active CPU profile (`platform_profile`, `EPP`, `turbo`), and thermal zones.
 - **`laptop-tune gui [--tray]`**: Native `egui` desktop dashboard with live monitoring, one-click profile switching (`pkexec`), system tray icon, autostart on login, and last-profile persistence.
-- **`laptop-tune profile <eco|balanced|performance|gaming> [--dry-run]`**: Applies universal kernel `sysfs` profiles (Intel `intel_pstate`/EPP, AMD `amd-pstate`/`cpufreq/boost`, and generic `scaling_governor` fallbacks).
+- **`laptop-tune profile <eco|balanced|performance|max> [--dry-run]`**: Applies universal kernel `sysfs` profiles (Intel `intel_pstate`/EPP, AMD `amd-pstate`/`cpufreq/boost`, and generic `scaling_governor` fallbacks).
 - **`laptop-tune reset [--dry-run]`**: Restores safe default (`balanced`) kernel settings.
 - **`laptop-tune generate-rules`**: Detects GPUs and `BAT*` devices to generate `udev` runtime PM rules and `tlp.d` configs.
 
@@ -17,7 +17,7 @@ Rust CLI & native desktop GUI for auditing and tuning Linux laptops: hybrid GPU 
 | **`eco`** | `quiet` *(fallback: `low-power`, `cool`)* | `power` *(or `powersave`)* | Off | `powersupersave` | Maximum battery life & silent fans |
 | **`balanced`** / **`reset`** | `balanced` | `balance_performance` *(or `schedutil`)* | On | `default` | Everyday use & safe default |
 | **`performance`** | `performance` | `performance` | On | `default` | Compilation, rendering & heavy CPU loads |
-| **`gaming`** | `performance` | `performance` | On | `performance` | Gaming (avoids PCIe sleep micro-stutters on dGPU/NVMe) |
+| **`max`** | `performance` | `performance` | On | `performance` | Zero PCIe sleep latency (gaming, CUDA/AI, audio, heavy I/O) |
 
 ## Installation
 

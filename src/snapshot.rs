@@ -26,7 +26,7 @@ pub fn guess_active_profile(p: &ProfileState) -> &'static str {
         "balanced"
     } else if p.platform == "performance" || p.cpu_epp == "performance" {
         if p.aspm == "performance" {
-            "gaming"
+            "max"
         } else {
             "performance"
         }
@@ -152,17 +152,17 @@ mod tests {
         assert_eq!(state.aspm, "powersupersave");
         assert_eq!(guess_active_profile(&state), "eco");
 
-        let gaming = ProfileState {
+        let max_prof = ProfileState {
             platform: "performance".into(),
             cpu_epp: "performance".into(),
             turbo: "on".into(),
             aspm: "performance".into(),
         };
-        assert_eq!(guess_active_profile(&gaming), "gaming");
+        assert_eq!(guess_active_profile(&max_prof), "max");
 
         let perf = ProfileState {
             aspm: "default".into(),
-            ..gaming
+            ..max_prof
         };
         assert_eq!(guess_active_profile(&perf), "performance");
 

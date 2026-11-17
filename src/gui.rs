@@ -233,7 +233,7 @@ impl eframe::App for LaptopTuneApp {
                                 ("eco", "Eco"),
                                 ("balanced", "Balanced"),
                                 ("performance", "Performance"),
-                                ("gaming", "Gaming"),
+                                ("max", "Max"),
                             ] {
                                 let is_active = active == id;
                                 let btn = if is_active {
@@ -288,7 +288,7 @@ impl eframe::App for LaptopTuneApp {
                                     .selected_text(&ac)
                                     .width(100.0)
                                     .show_ui(ui, |ui| {
-                                        for prof in ["eco", "balanced", "performance", "gaming"] {
+                                        for prof in ["eco", "balanced", "performance", "max"] {
                                             ui.selectable_value(&mut ac, prof.into(), prof);
                                         }
                                     });
@@ -306,7 +306,7 @@ impl eframe::App for LaptopTuneApp {
                                     .selected_text(&bat)
                                     .width(100.0)
                                     .show_ui(ui, |ui| {
-                                        for prof in ["eco", "balanced", "performance", "gaming"] {
+                                        for prof in ["eco", "balanced", "performance", "max"] {
                                             ui.selectable_value(&mut bat, prof.into(), prof);
                                         }
                                     });

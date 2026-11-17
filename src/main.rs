@@ -109,7 +109,7 @@ fn print_help() {
     println!(
         "  gui [--tray]                Launch the native desktop GUI (optionally minimize to tray)"
     );
-    println!("  profile <name> [--dry-run]  Apply profile (eco | balanced | performance | gaming)");
+    println!("  profile <name> [--dry-run]  Apply profile (eco | balanced | performance | max)");
     println!("  reset [--dry-run]           Restore safe default (balanced) kernel settings");
     println!("  thresholds <start> <stop>   Set battery charge thresholds (e.g. 50 80 or 0 100)");
     println!("  daemon [--once]             Run event-driven AC/BAT + GPU + battery daemon");
@@ -142,7 +142,7 @@ fn main() {
         }
         Some("profile") => {
             let Some(name) = args.get(2) else {
-                eprintln!("Missing profile name. Use: eco | balanced | performance | gaming");
+                eprintln!("Missing profile name. Use: eco | balanced | performance | max");
                 process::exit(1);
             };
             let dry_run = args.iter().any(|a| a == "--dry-run");

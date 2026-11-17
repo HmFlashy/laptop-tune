@@ -34,7 +34,7 @@ pub const PROFILES: &[ProfileSpec] = &[
         aspm: "default",
     },
     ProfileSpec {
-        name: "gaming",
+        name: "max",
         platform_candidates: &["performance"],
         epp: "performance",
         turbo: true,
@@ -221,7 +221,7 @@ mod tests {
             Some("powersupersave")
         );
 
-        apply_profile_in(sys, "gaming", false).unwrap();
+        apply_profile_in(sys, "max", false).unwrap();
         assert_eq!(
             read_trimmed(&sys.join("firmware/acpi/platform_profile")).as_deref(),
             Some("performance")

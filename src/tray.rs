@@ -91,10 +91,10 @@ impl ksni::Tray for LaptopTuneTray {
             }
             .into(),
             CheckmarkItem {
-                label: "Profile: Gaming".into(),
-                checked: active == "gaming",
+                label: "Profile: Max".into(),
+                checked: active == "max",
                 activate: Box::new(|this: &mut Self| {
-                    let _ = this.tx.send(TrayEvent::ApplyProfile("gaming".into()));
+                    let _ = this.tx.send(TrayEvent::ApplyProfile("max".into()));
                 }),
                 ..Default::default()
             }
