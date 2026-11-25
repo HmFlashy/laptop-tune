@@ -364,7 +364,7 @@ impl eframe::App for LaptopTuneApp {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        let label = format!("⚡ {}", t.fast_charge);
+                                        let label = t.fast_charge;
                                         let btn = if is_fast {
                                             egui::Button::new(
                                                 egui::RichText::new(label)
