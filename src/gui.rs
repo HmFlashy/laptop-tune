@@ -127,6 +127,13 @@ impl LaptopTuneApp {
         );
     }
 
+    fn apply_fast_charge(&mut self, enabled: bool) {
+        let t = tr();
+        let arg = if enabled { "on" } else { "off" };
+        let state = if enabled { "ON" } else { "OFF" };
+        self.run_privileged(&["fast-charge", arg], format!("{}: {state}", t.fast_charge));
+    }
+
     fn active_profile_guess(&self) -> &'static str {
         guess_active_profile(&self.snapshot.profile)
     }
@@ -339,8 +346,45 @@ impl eframe::App for LaptopTuneApp {
 
                     // 2. Battery Card
                     let mut pending_thresholds: Option<(u8, u8)> = None;
+                    let mut pending_fast_charge: Option<bool> = None;
                     card_frame(ui).show(ui, |ui| {
-                        section_title(ui, t.battery);
+                        let supports_fast = self
+                            .snapshot
+                            .batteries
+                            .iter()
+                            .any(|b| b.supports_fast_charge);
+                        let is_fast = self
+                            .snapshot
+                            .batteries
+                            .iter()
+                            .any(|b| b.charge_type.as_deref() == Some("Fast"));
+                        ui.horizontal(|ui| {
+                            section_title(ui, t.battery);
+                            if supports_fast {
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        let label = format!("⚡ {}", t.fast_charge);
+                                        let btn = if is_fast {
+                                            egui::Button::new(
+                                                egui::RichText::new(label)
+                                                    .size(11.5)
+                                                    .strong()
+                                                    .color(ui.visuals().selection.stroke.color),
+                                            )
+                                            .fill(ACCENT_AMBER)
+                                            .corner_radius(6.0)
+                                        } else {
+                                            egui::Button::new(egui::RichText::new(label).size(11.5))
+                                                .corner_radius(6.0)
+                                        };
+                                        if ui.add(btn).clicked() {
+                                            pending_fast_charge = Some(!is_fast);
+                                        }
+                                    },
+                                );
+                            }
+                        });
                         ui.add_space(4.0);
                         if self.snapshot.batteries.is_empty() {
                             ui.label(egui::RichText::new(t.no_battery).color(muted));
@@ -389,41 +433,47 @@ impl eframe::App for LaptopTuneApp {
                                     let mut sel_s = cur_s;
                                     let mut sel_e = cur_e;
                                     ui.add_space(6.0);
-                                    ui.horizontal(|ui| {
-                                        ui.label(
-                                            egui::RichText::new(format!(
-                                                "{} :",
-                                                t.charge_thresholds
-                                            ))
-                                            .color(muted),
-                                        );
-                                        ui.label(egui::RichText::new(t.start_label).color(muted));
-                                        egui::ComboBox::from_id_salt("bat_start_thresh")
-                                            .selected_text(format!("{sel_s}%"))
-                                            .width(68.0)
-                                            .show_ui(ui, |ui| {
-                                                for val in [50u8, 60, 70, 80] {
-                                                    ui.selectable_value(
-                                                        &mut sel_s,
-                                                        val,
-                                                        format!("{val}%"),
-                                                    );
-                                                }
-                                            });
-                                        ui.add_space(4.0);
-                                        ui.label(egui::RichText::new(t.stop_label).color(muted));
-                                        egui::ComboBox::from_id_salt("bat_stop_thresh")
-                                            .selected_text(format!("{sel_e}%"))
-                                            .width(68.0)
-                                            .show_ui(ui, |ui| {
-                                                for val in [60u8, 70, 80, 90, 100] {
-                                                    ui.selectable_value(
-                                                        &mut sel_e,
-                                                        val,
-                                                        format!("{val}%"),
-                                                    );
-                                                }
-                                            });
+                                    ui.add_enabled_ui(!is_fast, |ui| {
+                                        ui.horizontal(|ui| {
+                                            ui.label(
+                                                egui::RichText::new(format!(
+                                                    "{} :",
+                                                    t.charge_thresholds
+                                                ))
+                                                .color(muted),
+                                            );
+                                            ui.label(
+                                                egui::RichText::new(t.start_label).color(muted),
+                                            );
+                                            egui::ComboBox::from_id_salt("bat_start_thresh")
+                                                .selected_text(format!("{sel_s}%"))
+                                                .width(68.0)
+                                                .show_ui(ui, |ui| {
+                                                    for val in [50u8, 60, 70, 80] {
+                                                        ui.selectable_value(
+                                                            &mut sel_s,
+                                                            val,
+                                                            format!("{val}%"),
+                                                        );
+                                                    }
+                                                });
+                                            ui.add_space(4.0);
+                                            ui.label(
+                                                egui::RichText::new(t.stop_label).color(muted),
+                                            );
+                                            egui::ComboBox::from_id_salt("bat_stop_thresh")
+                                                .selected_text(format!("{sel_e}%"))
+                                                .width(68.0)
+                                                .show_ui(ui, |ui| {
+                                                    for val in [60u8, 70, 80, 90, 100] {
+                                                        ui.selectable_value(
+                                                            &mut sel_e,
+                                                            val,
+                                                            format!("{val}%"),
+                                                        );
+                                                    }
+                                                });
+                                        });
                                     });
                                     if sel_s != cur_s {
                                         if sel_s >= sel_e {
@@ -440,6 +490,9 @@ impl eframe::App for LaptopTuneApp {
                             }
                         }
                     });
+                    if let Some(en) = pending_fast_charge {
+                        self.apply_fast_charge(en);
+                    }
                     if let Some((ps, pe)) = pending_thresholds {
                         self.apply_thresholds(ps, pe);
                     }

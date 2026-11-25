@@ -14,6 +14,7 @@ use std::env;
 use std::path::Path;
 use std::process;
 
+use battery::set_fast_charge_in;
 use gpu::vendor_name;
 use profile::{apply_profile_in, reset_defaults_in};
 use rules::{apply_gpu_setup_in, generate_rules_text};
@@ -35,6 +36,9 @@ fn cmd_status() {
             match (&info.start_threshold, &info.stop_threshold) {
                 (Some(s), Some(e)) => println!("  Thresholds: start={s}% / stop={e}%"),
                 _ => println!("  Thresholds: not exposed by kernel"),
+            }
+            if let Some(ct) = &info.charge_type {
+                println!("  ChargeType: {ct}");
             }
         }
     }
@@ -113,6 +117,7 @@ fn print_help() {
     println!("  profile <name> [--dry-run]  Apply profile (eco | balanced | performance | max)");
     println!("  reset [--dry-run]           Restore safe default (balanced) kernel settings");
     println!("  thresholds <start> <stop>   Set battery charge thresholds (e.g. 50 80 or 0 100)");
+    println!("  fast-charge <on|off>        Toggle hardware fast charge / ExpressCharge");
     println!("  daemon [--once]             Run event-driven AC/BAT + GPU + battery daemon");
     println!(
         "  setup-gpu [--dry-run]       Install udev/modprobe/DRM rules for hybrid GPU D3 sleep"
@@ -184,6 +189,27 @@ fn main() {
                 process::exit(1);
             }
             println!("Battery thresholds set to {s}% / {e}%.");
+        }
+        Some("fast-charge") => {
+            let enabled = match args.get(2).map(String::as_str) {
+                Some("on" | "1" | "true") => true,
+                Some("off" | "0" | "false") => false,
+                _ => {
+                    eprintln!("Usage: laptop-tune fast-charge <on|off> [--dry-run]");
+                    process::exit(1);
+                }
+            };
+            let dry_run = args.iter().any(|a| a == "--dry-run");
+            if let Err(err) =
+                set_fast_charge_in(Path::new("/sys/class/power_supply"), enabled, dry_run)
+            {
+                eprintln!("{err}");
+                process::exit(1);
+            }
+            println!(
+                "Fast charge {}.",
+                if enabled { "enabled" } else { "disabled" }
+            );
         }
         Some("daemon") => {
             let once = args.iter().any(|a| a == "--once");

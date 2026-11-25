@@ -1,7 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::sysfs::{read_trimmed, read_u64};
+use crate::snapshot::parse_active_bracketed;
+use crate::sysfs::{read_trimmed, read_u64, write_value};
 
 #[derive(Debug, PartialEq)]
 pub struct BatteryInfo {
@@ -11,6 +12,8 @@ pub struct BatteryInfo {
     pub power_w: Option<f64>,
     pub start_threshold: Option<String>,
     pub stop_threshold: Option<String>,
+    pub charge_type: Option<String>,
+    pub supports_fast_charge: bool,
 }
 
 pub fn detect_batteries_in(power_supply_root: &Path) -> Vec<PathBuf> {
@@ -38,6 +41,12 @@ pub fn read_battery_info(bat: &Path) -> BatteryInfo {
     let capacity = read_trimmed(&bat.join("capacity")).unwrap_or_else(|| "?".into());
     let start_threshold = read_trimmed(&bat.join("charge_control_start_threshold"));
     let stop_threshold = read_trimmed(&bat.join("charge_control_end_threshold"));
+    let charge_types_raw = read_trimmed(&bat.join("charge_types"));
+    let supports_fast_charge = charge_types_raw.as_deref().is_some_and(|raw| {
+        raw.split_whitespace()
+            .any(|t| t.trim_matches(['[', ']']) == "Fast")
+    });
+    let charge_type = charge_types_raw.as_deref().map(parse_active_bracketed);
 
     let power_w = if let Some(pw) = read_u64(&bat.join("power_now")) {
         Some(pw as f64 / 1_000_000.0)
@@ -57,7 +66,46 @@ pub fn read_battery_info(bat: &Path) -> BatteryInfo {
         power_w,
         start_threshold,
         stop_threshold,
+        charge_type,
+        supports_fast_charge,
     }
+}
+
+pub fn set_fast_charge_in(
+    power_supply_root: &Path,
+    enabled: bool,
+    dry_run: bool,
+) -> Result<(), String> {
+    let bats = detect_batteries_in(power_supply_root);
+    let mut updated = false;
+    for bat in bats {
+        let ct_path = bat.join("charge_types");
+        let Some(raw) = read_trimmed(&ct_path) else {
+            continue;
+        };
+        let has = |name: &str| {
+            raw.split_whitespace()
+                .any(|tok| tok.trim_matches(['[', ']']) == name)
+        };
+        if !has("Fast") {
+            continue;
+        }
+        let target = if enabled {
+            "Fast"
+        } else if has("Custom") {
+            "Custom"
+        } else if has("Standard") {
+            "Standard"
+        } else {
+            "Adaptive"
+        };
+        write_value(&ct_path, target, dry_run)?;
+        updated = true;
+    }
+    if !updated {
+        return Err("Fast charge is not exposed by kernel (no charge_types with Fast).".into());
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -75,6 +123,10 @@ mod tests {
         write_mock(&bat.join("voltage_now"), "12500000\n");
         write_mock(&bat.join("charge_control_start_threshold"), "50\n");
         write_mock(&bat.join("charge_control_end_threshold"), "80\n");
+        write_mock(
+            &bat.join("charge_types"),
+            "Trickle Fast Standard Adaptive [Custom]\n",
+        );
 
         let info = read_battery_info(&bat);
         assert_eq!(info.name, "BAT0");
@@ -83,5 +135,13 @@ mod tests {
         assert!((info.power_w.unwrap() - 25.0).abs() < 1e-6);
         assert_eq!(info.start_threshold.as_deref(), Some("50"));
         assert_eq!(info.stop_threshold.as_deref(), Some("80"));
+        assert_eq!(info.charge_type.as_deref(), Some("Custom"));
+        assert!(info.supports_fast_charge);
+
+        set_fast_charge_in(&tmp.0, true, false).unwrap();
+        assert_eq!(
+            read_trimmed(&bat.join("charge_types")).as_deref(),
+            Some("Fast")
+        );
     }
 }
