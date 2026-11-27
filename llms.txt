@@ -1,0 +1,23 @@
+# laptop-tune
+
+> Comprehensive Rust utility for Linux laptop power management, hybrid GPU power-down, and battery optimization.
+
+laptop-tune audits and dynamically tunes CPU energy performance preferences, GPU runtime D3cold sleep states, PCIe ASPM, thermal limits, and battery charge thresholds on modern Linux laptops.
+
+## Architecture & Stack
+- Language: Rust 2021 edition (high reliability, zero runtime garbage collection)
+- GUI & Tray: `egui` lightweight native desktop interface with system tray daemon
+- Hardware Interaction: Direct Linux kernel `sysfs` manipulation, ACPI `platform_profile`, and `udev` monitoring
+- Supported Hardware: Intel, AMD, and NVIDIA hybrid graphics laptops
+
+## Core Capabilities
+- `laptop-tune status`: Real-time inspection of battery discharge rate in Watts, GPU state, CPU profile, and thermals
+- `laptop-tune profile <eco|balanced|performance|max>`: Instant profile activation adjusting governors and EPP
+- `laptop-tune thresholds <start> <stop>`: Protect battery longevity by configuring charge stopping thresholds (e.g., 50% / 80%)
+- `laptop-tune daemon`: Event-driven background daemon responding to AC adapter plug/unplug events instantly
+- `laptop-tune gui`: Native desktop control panel
+
+## Key Files
+- `src/main.rs`: CLI command router and daemon lifecycle
+- `src/sysfs/`: Linux kernel power management controllers
+- `src/gui/`: Native desktop application and system tray integration
